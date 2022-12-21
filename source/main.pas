@@ -137,11 +137,15 @@ type
     { private declarations }
     GCData        : TGCodeDataArray;
     CNC           : TSynCNCSyn;
+
     newp          : TBGRAPath;
+    newp_boundsF  : TRectF;
+
     zoom          : double;
     moving        : boolean;
     moveOrigin    : TPoint;
     moveTranslate : TPoint;
+
     bmpl          : TBGRALayeredBitmap;
     FFlattened    : TBGRABitmap;
     FGCodeLayer   : TBGRABitmap;
@@ -183,7 +187,8 @@ begin
   CNC := TSynCNCSyn.Create(CommandOutputScreen);
   CommandOutputScreen.Highlighter := CNC;
 
-  GCData:=Default(TGCodeDataArray);
+  newp_boundsF:=RectF(0,0,0,0);
+  newp:=TBGRAPath.Create;
 
   BGRAVirtualScreen2:=TBGRAVirtualScreen.Create(Self);
   BGRAVirtualScreen2.Parent:=Panel1;
@@ -201,7 +206,6 @@ begin
   BGRAVirtualScreen3.OnRedraw:=@BGRAVirtualScreen3Redraw;
   BGRAVirtualScreen3.BitmapAutoScale:=False;
 
-  newp:=TBGRAPath.Create;
   zoom:=1;
   moveTranslate:=Point(0,0);
 
@@ -217,7 +221,7 @@ procedure TGCodeViewer.FormDestroy(Sender: TObject);
 begin
   BGRAVirtualScreen2.Free;
   BGRAVirtualScreen3.Free;
-  FreeAndNil(FFlattened);
+  if Assigned(FFlattened) then FFlattened.Free;
   bmpl.Free;
   newp.Free;
 end;
@@ -320,12 +324,17 @@ begin
   zoom          := 1;
   moveTranslate := Point(0,0);
 
-  //FreeAndNil(FFlattened);
-  //UpdateFlattenedImage(rect(0,0,bmpl.Width,bmpl.Height),true);
-  //BGRAVirtualScreen2.DiscardBitmap;
-
+  newp_boundsF:=RectF(0,0,0,0);
   newp.resetTransform;
   newp.beginPath;
+
+
+  DestX:=0;
+  DestY:=0;
+  DestZ:=0;
+  LastX:=0;
+  LastY:=0;
+  LastZ:=0;
 
   FI:=0;
   FJ:=0;
@@ -346,6 +355,7 @@ begin
 
   PolarMode:=False;
 
+  GCData:=Default(TGCodeDataArray);
 
   for linenumber:=0 to Pred(CommandOutputScreen.Lines.Count) do
   begin
@@ -456,8 +466,6 @@ begin
       begin
         if (GCodeMotion=TtkGCodeKind.G0) then newp.moveTo(DestX,DestY);
         if (GCodeMotion=TtkGCodeKind.G1) then newp.lineTo(DestX,DestY);
-        //newp.addColor(MapHeightToBGRA((DestX*DestY)/40000,0));
-        //newp.addColor(MapHeightToBGRA(0.5,0));
         if GCData[tkZcode].ValueSet then
         begin
           //newp.addColor(MapHeightToBGRA((DestX*DestY)/40000,0));
@@ -598,6 +606,8 @@ begin
   end;
 
   newp.closePath;
+  newp_boundsF:=newp.GetBounds(1);
+  newp_boundsF.Inflate(4,4);
 
   // Update small gcode parser output
   BGRAVirtualScreen3.DiscardBitmap;
@@ -616,19 +626,17 @@ var
   cp:TPointF;
   cc:TBGRAPixel;
   i:integer;
-  boundsF: TRectF;
   sx,sy:double;
   md,ad: single;
 begin
-  boundsF:=newp.GetBounds(1);
-  if boundsF.Width=0 then exit;
-  if boundsF.Height=0 then exit;
+  if newp_boundsF.Width=0 then exit;
+  if newp_boundsF.Height=0 then exit;
 
-  md:=(boundsF.Width+boundsF.Height)/2000;
+  md:=(newp_boundsF.Width+newp_boundsF.Height)/2000;
   Image1.Picture.Clear;
 
-  sx:=(Image1.Width-2*OFFSET)/boundsF.Width;
-  sy:=(Image1.Height-2*OFFSET)/boundsF.Height;
+  sx:=(Image1.Width-2*OFFSET)/newp_boundsF.Width;
+  sy:=(Image1.Height-2*OFFSET)/newp_boundsF.Height;
 
   if sy<sx then sx:=sy;
   if sx<sy then sy:=sx;
@@ -639,7 +647,7 @@ begin
     cp:=ac.CurrentCoordinate;
     cc:=TBGRAPathCursor(ac).CurrentSegmentColor;
     ad:=MapHeight(cc)*$FFFF;
-    Image1.Canvas.DrawPixel(round((cp.x-boundsF.Left)*sx)+OFFSET,Image1.Height-(round((cp.y-boundsF.Top)*sy))-OFFSET,FPColor(round(ad),$FFFF,0,alphaOpaque));
+    Image1.Canvas.DrawPixel(round((cp.x-newp_boundsF.Left)*sx)+OFFSET,Image1.Height-(round((cp.y-newp_boundsF.Top)*sy))-OFFSET,FPColor(round(ad),$FFFF,0,alphaOpaque));
     Application.ProcessMessages;
     ad:=ac.MoveForward(md,true);
     if ad=0 then break;
@@ -660,7 +668,6 @@ end;
 procedure TGCodeViewer.BGRAVirtualScreen3Redraw(Sender: TObject;
   Bitmap: TBGRABitmap);
 var
-  boundsF: TRectF;
   newc: TBGRACanvas2D;
   sx,sy:Double;
   vs:TBGRAVirtualScreen;
@@ -670,12 +677,11 @@ begin
 
   vs:=TBGRAVirtualScreen(Sender);
 
-  boundsF:=newp.GetBounds;
-  if boundsF.Width=0 then exit;
-  if boundsF.Height=0 then exit;
+  if newp_boundsF.Width=0 then exit;
+  if newp_boundsF.Height=0 then exit;
 
-  sx:=vs.Width/boundsF.Width;
-  sy:=vs.Height/boundsF.Height;
+  sx:=vs.Width/newp_boundsF.Width;
+  sy:=vs.Height/newp_boundsF.Height;
 
   newc:=Bitmap.Canvas2D;
 
@@ -685,8 +691,8 @@ begin
   newc.beginPath;
   newc.scale(sx,-sy);
   newc.strokeStyle(clRed);
-  if (boundsF.Bottom>0) then newc.translate(0,-boundsF.Bottom);
-  newc.translate(-boundsF.Left,0);
+  if (newp_boundsF.Bottom>0) then newc.translate(0,-newp_boundsF.Bottom);
+  newc.translate(-newp_boundsF.Left,0);
   newc.addPath(newp);
   newc.closePath;
   newc.stroke;
@@ -790,7 +796,6 @@ end;
 
 procedure TGCodeViewer.UpdateGCodeImage(AUpdateView: boolean=true);
 var
-  boundsF: TRectF;
   newc: TBGRACanvas2D;
   sx,sy:Double;
   vs:TBGRAVirtualScreen;
@@ -800,12 +805,11 @@ begin
 
   vs:=BGRAVirtualScreen2;
 
-  boundsF:=newp.GetBounds;
-  if boundsF.Width=0 then exit;
-  if boundsF.Height=0 then exit;
+  if newp_boundsF.Width=0 then exit;
+  if newp_boundsF.Height=0 then exit;
 
-  sx:=zoom*(vs.Width/boundsF.Width);
-  sy:=zoom*(vs.Height/boundsF.Height);
+  sx:=zoom*(vs.Width/newp_boundsF.Width);
+  sy:=zoom*(vs.Height/newp_boundsF.Height);
 
   if sy<sx then sx:=sy;
   if sx<sy then sy:=sx;
@@ -822,8 +826,8 @@ begin
 
   newc.scale(sx,-sy);
   newc.strokeStyle(clRed);
-  if (boundsF.Bottom>0) then newc.translate(0,-boundsF.Bottom);
-  newc.translate(-boundsF.Left,0);
+  if (newp_boundsF.Bottom>0) then newc.translate(0,-newp_boundsF.Bottom);
+  newc.translate(-newp_boundsF.Left,0);
   newc.addPath(newp);
   newc.closePath;
   newc.stroke;
