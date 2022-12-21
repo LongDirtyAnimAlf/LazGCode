@@ -316,7 +316,7 @@ const
   AXISNUMBERS : set of TtkTokenKind = [tkXcode, tkYcode, tkZcode, tkAcode, tkBcode, tkCcode, tkUcode, tkVcode, tkWcode];
 var
   linenumber,i,j,k      : integer;
-  t                     : string;
+  s,t                   : string;
   SHA                   : TSynHighlighterAttributes;
   tTK                   : TtkTokenKind;
   GCode                 : TtkGCodeKind;
@@ -389,58 +389,79 @@ begin
   for linenumber:=0 to Pred(CommandOutputScreen.Lines.Count) do
   begin
     for TokenEnumerator in TtkTokenKind do GCData[TokenEnumerator].ValueSet:=False;
+    SHA:=nil;
+    i:=0;
+    t:='';
     k:=1;
     repeat
-      TSynCNCSyn(CommandOutputScreen.Highlighter).GetHighlighterAttriAtRowColEx(TPoint.Create(k,linenumber+1),t,i,j,SHA);
-      if (SHA=nil) then break;
-      //if Assigned(SHA) then  Memo1.Lines.Append(SHA.Name);
-      TokenEnumerator:=TtkTokenKind(i);
-      case TokenEnumerator of
-        tkGcode:
-          begin
-            GCode:=GetGCodeFromString(t);
-            Inc(k,length(t));
-            if (length(t)=0) then Inc(k);
-          end;
-        else
-          begin
-            if TokenEnumerator in [
-              tkComment,
-              tkText,
-              tkReserved,
-              tkNull,
-              tkNumber,
-              tkSpace,
-              tkAbstract,
-              tkNormal,
-              tkKey,
-              tkIdentifier,
-              tkNone
-              ] then
-              begin
-                Inc(k,length(t));
-                if (length(t)=0) then Inc(k);
-              end
-              else
-              begin
-                Inc(k);
-                TSynCNCSyn(CommandOutputScreen.Highlighter).GetHighlighterAttriAtRowColEx(TPoint.Create(k,linenumber+1),t,i,j,SHA);
-                tTK:=TtkTokenKind(i);
-                if (tTK=tkNumber) then
+      if SHA<>nil then
+      begin
+        TokenEnumerator:=TtkTokenKind(i);
+        case TokenEnumerator of
+          tkGcode:
+            begin
+              GCode:=GetGCodeFromString(t);
+              Inc(k,length(t));
+              if (length(t)=0) then Inc(k);
+            end;
+          tkNcode:
+            begin
+              Inc(k,length(t));
+              if (length(t)=0) then Inc(k);
+            end;
+          else
+            begin
+              if TokenEnumerator in [
+                tkComment,
+                tkText,
+                tkReserved,
+                tkNull,
+                tkNumber,
+                tkSpace,
+                tkAbstract,
+                tkNormal,
+                tkKey,
+                tkIdentifier,
+                tkNcode,
+                tkNone
+                ] then
                 begin
-                  tTK:=TokenEnumerator;
-                  // Tokens U,V and W are same as Tokes A,B and C
-                  if tTK=tkUcode then tTK:=tkAcode;
-                  if tTK=tkVcode then tTK:=tkBcode;
-                  if tTK=tkWcode then tTK:=tkCcode;
-                  GCData[tTK].ValueSet:=True;
-                  GCData[tTK].NewValue:=GetDouble(t);
                   Inc(k,length(t));
                   if (length(t)=0) then Inc(k);
+                end
+                else
+                begin
+                  Inc(k);
+                  s:='';
+                  repeat
+                    TSynCNCSyn(CommandOutputScreen.Highlighter).GetHighlighterAttriAtRowColEx(TPoint.Create(k,linenumber+1),t,i,j,SHA);
+                    if (SHA=nil) then break;
+                    tTK:=TtkTokenKind(i);
+                    if tTK in [tkSpace,tkNumber] then
+                    begin
+                      if (tTK=tkNumber) then s:=s+t;
+                      Inc(k,length(t));
+                      if (length(t)=0) then Inc(k);
+                    end else break;
+                  until false;
+                  if (Length(s)>0) then
+                  begin
+                    // We got data !!!
+                    tTK:=TokenEnumerator;
+                    // Tokens U,V and W are same as Tokes A,B and C
+                    if tTK=tkUcode then tTK:=tkAcode;
+                    if tTK=tkVcode then tTK:=tkBcode;
+                    if tTK=tkWcode then tTK:=tkCcode;
+                    GCData[tTK].ValueSet:=True;
+                    GCData[tTK].NewValue:=GetDouble(s);
+                  end;
+                  if (SHA=nil) then break else continue;
                 end;
-              end;
-          end;
+            end;
+        end;
       end;
+      TSynCNCSyn(CommandOutputScreen.Highlighter).GetHighlighterAttriAtRowColEx(TPoint.Create(k,linenumber+1),t,i,j,SHA);
+      if (SHA=nil) then break;
     until false;
 
     // Set modal modes, if any
@@ -790,7 +811,7 @@ begin
   if (Sender=btnLoadLetters) then CommandOutputScreen.Lines.Assign(memoLetters.Lines);
   if (Sender=btnLoadBear) then CommandOutputScreen.Lines.Assign(memoBear.Lines);
   CommandOutputScreen.EndUpdate;
-  btnRenderGCodeClick(nil);
+  //btnRenderGCodeClick(nil);
 end;
 
 procedure TGCodeViewer.BGRAVirtualScreen2MouseDown(Sender: TObject;

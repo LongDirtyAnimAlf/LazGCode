@@ -1295,8 +1295,6 @@ begin  //'false', 'fix', 'fup',
           inc(Run, 3);
         end else
         begin
-          //while (FLine[Run + 1] in ['0'..'9','.']) and not IsLineEnd(Run) do
-          //inc(Run);
           FTokenID := tkFcode;
           inc(Run, 1);
         end;
@@ -1446,8 +1444,6 @@ begin
   case FLine[Run] of
     'm':
       begin
-        //while (FLine[Run + 1] in ['0'..'9']) and not IsLineEnd(Run) do
-        //inc(Run);
         FTokenID := tkMcode;
         inc(Run, 1);
       end
@@ -1480,7 +1476,6 @@ begin  //'ne', 'next', 'not'
         begin
           while (FLine[Run + 1] in ['0'..'9']) and not IsLineEnd(Run) do
           inc(Run);
-
           FTokenID := tkNcode;
           inc(Run, 1);
         end;
@@ -1502,9 +1497,6 @@ begin//'or'
             inc(Run, 2);
         end else
         begin
-          while (FLine[Run + 1] in ['0'..'9']) and not IsLineEnd(Run) do
-          inc(Run);
-
           FTokenID := tkOcode;
           inc(Run, 1);
         end;
@@ -1569,8 +1561,6 @@ begin   //'repeart', 'round'
               inc(Run, 5);
           end else
         begin
-          //while (FLine[Run + 1] in ['0'..'9','.']) and not IsLineEnd(Run) do
-          //inc(Run);
           FTokenID := tkRcode;
           inc(Run, 1);
         end;
@@ -1602,8 +1592,6 @@ begin  //'sign', 'sin', 'sqrt'
             inc(Run, 4);
         end else
         begin
-          //while (FLine[Run + 1] in ['0'..'9']) and not IsLineEnd(Run) do
-          //inc(Run);
           FTokenID := tkScode;
           inc(Run, 1);
         end;
@@ -1635,9 +1623,6 @@ begin   //'tan', 'then', 'true'
             inc(Run, 4);
         end else
         begin
-          while (FLine[Run + 1] in ['0'..'9']) and not IsLineEnd(Run) do
-          inc(Run);
-
           FTokenID := tkTcode;
           inc(Run, 1);
         end;
@@ -1762,7 +1747,6 @@ begin
       '.','-','0' .. '9': NumberProc;
       '%','[',']','#','@','^','*', ';': SymbolProc;
 //       'A'..'Z', 'a'..'z', '_': IdentProc;
-
       'a': ACodeProc;
       'b': BCodeProc;
       'c': CCodeProc;
