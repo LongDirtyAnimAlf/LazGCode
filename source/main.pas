@@ -303,17 +303,14 @@ var
   SHA                   : TSynHighlighterAttributes;
   tTK                   : TtkTokenKind;
   GCode                 : TtkGCodeKind;
-  DestX, DestY, DestZ   : Double;
-  LastX, LastY, LastZ   : Double;
-  FI,FJ,FK,FF,FP,FQ,FR  : Double;
   ACenterX, ACenterY    : Double;
   ARadius, ADist, ASign : Double;
   SA,SE                 : double;
 
-  PFF,PFI,PFJ,PFK       : PDouble;
-  PFP,PFQ,PFR           : PDouble;
-  PDestX,PDestY,PDestZ  : PDouble;
-  PLastX,PLastY,PLastZ  : PDouble;
+  FF,FI,FJ,FK           : PDouble;
+  FP,FQ,FR              : PDouble;
+  DestX,DestY,DestZ     : PDouble;
+  LastX,LastY,LastZ     : PDouble;
 
   GotXYZ                : boolean;
   GotIJK                : boolean;
@@ -339,21 +336,6 @@ begin
   newp.resetTransform;
   newp.beginPath;
 
-  DestX:=0;
-  DestY:=0;
-  DestZ:=0;
-  LastX:=0;
-  LastY:=0;
-  LastZ:=0;
-
-  FI:=0;
-  FJ:=0;
-  FK:=0;
-  FF:=0;
-  FP:=0;
-  FQ:=0;
-  FR:=0;
-
   GCodeMotion:=TtkGCodeKind.G0;
   GCodeDistance:=TtkGCodeKind.G91;
   GCodeArcDistance:=TtkGCodeKind.G91_1;
@@ -367,22 +349,21 @@ begin
 
   GCData:=Default(TGCodeDataArray);
 
-  PFF:=@GCData[tkFcode].NewValue;
-  PFI:=@GCData[tkIcode].NewValue;
-  PFJ:=@GCData[tkJcode].NewValue;
-  PFK:=@GCData[tkKcode].NewValue;
-  PFP:=@GCData[tkPcode].NewValue;
-  PFQ:=@GCData[tkQcode].NewValue;
-  PFR:=@GCData[tkRcode].NewValue;
+  FF:=@GCData[tkFcode].NewValue;
+  FI:=@GCData[tkIcode].NewValue;
+  FJ:=@GCData[tkJcode].NewValue;
+  FK:=@GCData[tkKcode].NewValue;
+  FP:=@GCData[tkPcode].NewValue;
+  FQ:=@GCData[tkQcode].NewValue;
+  FR:=@GCData[tkRcode].NewValue;
 
-  PDestX:=@GCData[tkXcode].NewValue;
-  PDestY:=@GCData[tkYcode].NewValue;
-  PDestZ:=@GCData[tkZcode].NewValue;
+  DestX:=@GCData[tkXcode].NewValue;
+  DestY:=@GCData[tkYcode].NewValue;
+  DestZ:=@GCData[tkZcode].NewValue;
 
-  PLastX:=@GCData[tkXcode].PrevValue;
-  PLastY:=@GCData[tkYcode].PrevValue;
-  PLastZ:=@GCData[tkZcode].PrevValue;
-
+  LastX:=@GCData[tkXcode].PrevValue;
+  LastY:=@GCData[tkYcode].PrevValue;
+  LastZ:=@GCData[tkZcode].PrevValue;
 
   for linenumber:=0 to Pred(CommandOutputScreen.Lines.Count) do
   begin
@@ -455,26 +436,21 @@ begin
       // Modal values valid
     end;
 
-    if GCData[tkXcode].ValueSet then DestX:=GCData[tkXcode].NewValue else DestX:=GCData[tkXcode].PrevValue;
-    if GCData[tkYcode].ValueSet then DestY:=GCData[tkYcode].NewValue else DestY:=GCData[tkYcode].PrevValue;
-    if GCData[tkZcode].ValueSet then DestZ:=GCData[tkZcode].NewValue else DestZ:=GCData[tkZcode].PrevValue;
-
-    LastX:=GCData[tkXcode].PrevValue;
-    LastY:=GCData[tkYcode].PrevValue;
-    LastZ:=GCData[tkZcode].PrevValue;
-
-    if GCData[tkFcode].ValueSet then FF:=GCData[tkFcode].NewValue else FF:=GCData[tkFcode].PrevValue;
-
-    if GCData[tkIcode].ValueSet then FI:=GCData[tkIcode].NewValue else FI:=0;
-    if GCData[tkJcode].ValueSet then FJ:=GCData[tkJcode].NewValue else FJ:=0;
-    if GCData[tkKcode].ValueSet then FK:=GCData[tkKcode].NewValue else FK:=0;
-    if GCData[tkPcode].ValueSet then FP:=GCData[tkPcode].NewValue else FP:=0;
-    if GCData[tkQcode].ValueSet then FQ:=GCData[tkQcode].NewValue else FQ:=0;
-    if GCData[tkRcode].ValueSet then FR:=GCData[tkRcode].NewValue else FR:=0;
-
-    GotXYZ  := ((GCData[tkXcode].ValueSet) OR (GCData[tkYcode].ValueSet) OR (GCData[tkZcode].ValueSet));
-    GotIJK  := ((GCData[tkIcode].ValueSet) OR (GCData[tkJcode].ValueSet) OR (GCData[tkKcode].ValueSet));
-    GotPQ   := ((GCData[tkPcode].ValueSet) OR (GCData[tkQcode].ValueSet));
+    for GCodeEnum in [tkXcode,tkYcode,tkZcode] do
+    begin
+      GotXYZ:=GCData[GCodeEnum].ValueSet;
+      if GotXYZ then break;
+    end;
+    for GCodeEnum in [tkIcode,tkJcode,tkKcode] do
+    begin
+      GotIJK:=GCData[GCodeEnum].ValueSet;
+      if GotIJK then break;
+    end;
+    for GCodeEnum in [tkPcode,tkQcode] do
+    begin
+      GotPQ:=GCData[GCodeEnum].ValueSet;
+      if GotPQ then break;
+    end;
     GotR    := ((GCData[tkRcode].ValueSet));
 
     // Did we receive a line with XYZ coordinates ?
@@ -483,14 +459,14 @@ begin
       // Lines / moves
       if (GCodeMotion in [TtkGCodeKind.G0,TtkGCodeKind.G1]) then
       begin
-        if (GCodeMotion=TtkGCodeKind.G0) then newp.moveTo(DestX,DestY);
-        if (GCodeMotion=TtkGCodeKind.G1) then newp.lineTo(DestX,DestY);
+        if (GCodeMotion=TtkGCodeKind.G0) then newp.moveTo(DestX^,DestY^);
+        if (GCodeMotion=TtkGCodeKind.G1) then newp.lineTo(DestX^,DestY^);
         if GCData[tkZcode].ValueSet then
         begin
-          newp.addColor(MapHeightToBGRA(0.5+(DestZ/(100000)),255));
+          newp.addColor(MapHeightToBGRA(0.5+(DestZ^/(100000)),255));
         end;
-        //newp.arcDeg(DestX,DestY,0.1,0,360);
-        //newp.moveTo(DestX,DestY);
+        //newp.arcDeg(DestX^,DestY^,0.1,0,360);
+        //newp.moveTo(DestX^,DestY^);
       end;
 
       // Splines
@@ -505,18 +481,14 @@ begin
         //  Y<pos>	 A coordinate on the Y axis  - (end point)
         if (GotPQ) then
         begin
-          if (GotIJK) then
+          if (NOT GotIJK) then
           begin
-            newp.bezierCurveTo(LastX+FI,LastY+FJ,DestX+FP,DestY+FQ,DestX,DestY);
-          end
-          else
-          begin
-            FI:=-GCData[tkPcode].PrevValue;
-            FJ:=-GCData[tkQcode].PrevValue;
-            newp.bezierCurveTo(LastX+FI,LastY+FJ,DestX+FP,DestY+FQ,DestX,DestY);
+            FI^:=-GCData[tkPcode].PrevValue;
+            FJ^:=-GCData[tkQcode].PrevValue;
           end;
-          newp.arcDeg(DestX,DestY,0.1,0,360);
-          newp.moveTo(DestX,DestY);
+          newp.bezierCurveTo(LastX^+FI^,LastY^+FJ^,DestX^+FP^,DestY^+FQ^,DestX^,DestY^);
+          newp.arcDeg(DestX^,DestY^,0.1,0,360);
+          newp.moveTo(DestX^,DestY^);
         end;
       end;
     end;
@@ -529,50 +501,50 @@ begin
         if GotIJK then
         begin
           // Simple copy
-          ARadius:=SQRT(SQR(FI)+SQR(FJ));
+          ARadius:=SQRT(SQR(FI^)+SQR(FJ^));
           if (GCodeArcDistance=TtkGCodeKind.G91_1) then
           begin
-            ARadius:=SQRT(SQR(FI)+SQR(FJ));
-            ACenterX:=LastX+FI;
-            ACenterY:=LastY+FJ;
+            ARadius:=SQRT(SQR(FI^)+SQR(FJ^));
+            ACenterX:=LastX^+FI^;
+            ACenterY:=LastY^+FJ^;
           end
           else
           begin
-            ARadius:=SQRT(SQR(DestX-FI)+SQR(DestY-FJ));
-            ACenterX:=FI;
-            ACenterY:=FJ;
+            ARadius:=SQRT(SQR(DestX^-FI^)+SQR(DestY^-FJ^));
+            ACenterX:=FI^;
+            ACenterY:=FJ^;
           end;
         end;
         if GotR then
         begin
-          ARadius:=FR;
+          ARadius:=FR^;
           //Distance between points
           ADist:=sqrt(sqr(DestX-LastX)+sqr(DestY-LastY));
           if (GCodeMotion=TtkGCodeKind.G3) then ASign:=-1 else ASign:=1;
           // Center of circle
-          ACenterX:=0.5*(LastX+DestX)+ASign*0.5*sqrt(2*((2*sqr(ARadius))/sqr(ADist))-1)*(DestY-LastY);
-          ACenterY:=0.5*(LastY+DestY)+ASign*0.5*sqrt(2*((2*sqr(ARadius))/sqr(ADist))-1)*(LastX-DestX);
+          ACenterX:=0.5*(LastX^+DestX^)+ASign*0.5*sqrt(2*((2*sqr(ARadius))/sqr(ADist))-1)*(DestY^-LastY^);
+          ACenterY:=0.5*(LastY^+DestY^)+ASign*0.5*sqrt(2*((2*sqr(ARadius))/sqr(ADist))-1)*(LastX^-DestX^);
           // Calculate FI and FJ
-          FI:=ACenterX-LastX;
-          FJ:=ACenterY-LastY;
+          FI^:=ACenterX-LastX^;
+          FJ^:=ACenterY-LastY^;
         end;
 
         // Calculate start angle
-        Q1:=((LastX>=ACenterX) AND (LastY>=ACenterY));
-        Q2:=((LastX<ACenterX) AND (LastY>=ACenterY));
-        Q3:=((LastX<ACenterX) AND (LastY<ACenterY));
-        Q4:=((LastX>=ACenterX) AND (LastY<ACenterY));
-        SA:=180*(arctan((LastY-ACenterY)/(LastX-ACenterX)))/Pi;
+        Q1:=((LastX^>=ACenterX) AND (LastY^>=ACenterY));
+        Q2:=((LastX^<ACenterX) AND (LastY^>=ACenterY));
+        Q3:=((LastX^<ACenterX) AND (LastY^<ACenterY));
+        Q4:=((LastX^>=ACenterX) AND (LastY^<ACenterY));
+        SA:=180*(arctan((LastY^-ACenterY)/(LastX^-ACenterX)))/Pi;
         if (Q1) then SA:=0+SA;
         if (Q2 OR Q3) then SA:=180+SA;
         if (Q4) then SA:=360+SA;
 
         // Calculate stop angle
-        Q1:=((DestX>=ACenterX) AND (DestY>=ACenterY));
-        Q2:=((DestX<ACenterX) AND (DestY>=ACenterY));
-        Q3:=((DestX<ACenterX) AND (DestY<ACenterY));
-        Q4:=((DestX>=ACenterX) AND (DestY<ACenterY));
-        SE:=180*(arctan((DestY-ACenterY)/(DestX-ACenterX)))/Pi;
+        Q1:=((DestX^>=ACenterX) AND (DestY^>=ACenterY));
+        Q2:=((DestX^<ACenterX) AND (DestY^>=ACenterY));
+        Q3:=((DestX^<ACenterX) AND (DestY^<ACenterY));
+        Q4:=((DestX^>=ACenterX) AND (DestY^<ACenterY));
+        SE:=180*(arctan((DestY^-ACenterY)/(DestX^-ACenterX)))/Pi;
         if (Q1) then SE:=0+SE;
         if (Q2 OR Q3) then SE:=180+SE;
         if (Q4) then SE:=360+SE;
@@ -595,8 +567,8 @@ begin
         end;
 
         // Finally, draw circle
-        newp.arcTo(ARadius,ARadius,0,(NOT GotR),(GCodeMotion=TtkGCodeKind.G2),DestX,DestY);
-        newp.moveTo(DestX, DestY);
+        newp.arcTo(ARadius,ARadius,0,(NOT GotR),(GCodeMotion=TtkGCodeKind.G2),DestX^,DestY^);
+        newp.moveTo(DestX^, DestY^);
       end;
     end;
 
@@ -620,6 +592,8 @@ begin
     begin
       if GCData[GCodeEnum].ValueSet then GCData[GCodeEnum].PrevValue:=GCData[GCodeEnum].NewValue;
     end;
+
+    // GOTO NEXT GCODE LINE
   end;
 
   newp.closePath;
