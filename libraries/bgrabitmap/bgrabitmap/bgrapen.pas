@@ -842,7 +842,7 @@ begin
     HasLittleBorder := false;
 
     //determine u-turn
-    turn := borders[i].leftSide.dir * borders[i+1].leftSide.dir;
+    turn := borders[i].leftSide.dir ** borders[i+1].leftSide.dir;
     if turn < -0.99999 then
     begin
       if joinstyle <> pjsRound then
@@ -892,7 +892,7 @@ begin
       //leftside join
       leftInter := IntersectLine( borders[i].leftSide, borders[i+1].leftSide );
       diff := leftInter-pts[i+1];
-      len := sqrt(diff*diff);
+      len := sqrt(diff**diff);
       if (len > maxMiter) and (turn >= 0) then //if miter too far
       begin
         diff.Scale(1/len);
