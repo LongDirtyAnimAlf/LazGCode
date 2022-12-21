@@ -934,7 +934,7 @@ begin
   // numbers
   FNumberAttri := TSynHighlighterAttributes.Create(SYNS_AttrNumber,
     SYNS_FriendlyAttrNumber);
-  FNumberAttri.Foreground := $008C62FF;
+  FNumberAttri.Foreground := $000000FF;
   AddAttribute(FNumberAttri);
 
   // spaces
@@ -980,7 +980,8 @@ begin
 
   // G-Code
   FGcodeAttri := TSynHighlighterAttributes.Create('CNC G', 'CNC G-Code');
-  FGcodeAttri.Foreground := $00BBFF80;
+  FGcodeAttri.Foreground := $0000FF00;
+  FReservedAttri.Style := [fsBold];
   AddAttribute(FGcodeAttri);
 
   // H-Code
@@ -1052,19 +1053,16 @@ begin
   // U-Code
   FUcodeAttri := TSynHighlighterAttributes.Create('CNC U', 'CNC U-Code');
   FUcodeAttri.Foreground := $00FFAFC1;
-  FUcodeAttri.Style := [fsBold];
   AddAttribute(FUcodeAttri);
 
   // V-Code
   FVcodeAttri := TSynHighlighterAttributes.Create('CNC V', 'CNC V-Code');
   FVcodeAttri.Foreground := $00FFAFC1;
-  FVcodeAttri.Style := [fsBold];
   AddAttribute(FVcodeAttri);
 
   // W-Code
   FWcodeAttri := TSynHighlighterAttributes.Create('CNC W', 'CNC W-Code');
   FWcodeAttri.Foreground := $00FFAFC1;
-  FWcodeAttri.Style := [fsBold];
   AddAttribute(FWcodeAttri);
 
   // X-Code
@@ -1332,8 +1330,8 @@ begin   //'ge', 'goto', 'gt',
             inc(Run, 2);
         end else
         begin
-          //while (FLine[Run + 1] in ['0'..'9']) and not IsLineEnd(Run) do
-          //inc(Run);
+          while (FLine[Run + 1] in ['.','0'..'9']) and not IsLineEnd(Run) do
+          inc(Run);
           FTokenID := tkGcode;
           inc(Run, 1);
         end;

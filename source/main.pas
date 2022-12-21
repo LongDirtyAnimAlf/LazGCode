@@ -115,6 +115,7 @@ type
     btnRenderGCode: TButton;
     btnTraceGCode: TButton;
     btnLoadBear: TButton;
+    btnTraceView: TButton;
     buttonQuit: TButton;
     CommandOutputScreen: TSynEdit;
     editFileInput: TFileNameEdit;
@@ -138,6 +139,8 @@ type
     GCData        : TGCodeDataArray;
     CNC           : TSynCNCSyn;
 
+    newc          : TBGRACanvas2D;
+
     newp          : TBGRAPath;
     newp_boundsF  : TRectF;
 
@@ -160,9 +163,12 @@ type
     procedure BGRAVirtualScreen2MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
     procedure BGRAVirtualScreen2Redraw(Sender: TObject; Bitmap: TBGRABitmap);
     procedure BGRAVirtualScreen3Redraw(Sender: TObject; Bitmap: TBGRABitmap);
+
     procedure UpdateFlattenedImage(ARect: TRect; AUpdateView: boolean=true);
     procedure UpdateGCodeImage(AUpdateView: boolean=true);
     procedure UpdateCursorImage(Location:TPoint;AUpdateView: boolean=true);
+
+    procedure TraceGCode(Sender: TObject);
   public
     { public declarations }
   end;
@@ -304,6 +310,11 @@ var
   ARadius, ADist, ASign : Double;
   SA,SE                 : double;
 
+  PFF,PFI,PFJ,PFK       : PDouble;
+  PFP,PFQ,PFR           : PDouble;
+  PDestX,PDestY,PDestZ  : PDouble;
+  PLastX,PLastY,PLastZ  : PDouble;
+
   GotXYZ                : boolean;
   GotIJK                : boolean;
   GotPQ                 : boolean;
@@ -327,7 +338,6 @@ begin
   newp_boundsF:=RectF(0,0,0,0);
   newp.resetTransform;
   newp.beginPath;
-
 
   DestX:=0;
   DestY:=0;
@@ -357,6 +367,23 @@ begin
 
   GCData:=Default(TGCodeDataArray);
 
+  PFF:=@GCData[tkFcode].NewValue;
+  PFI:=@GCData[tkIcode].NewValue;
+  PFJ:=@GCData[tkJcode].NewValue;
+  PFK:=@GCData[tkKcode].NewValue;
+  PFP:=@GCData[tkPcode].NewValue;
+  PFQ:=@GCData[tkQcode].NewValue;
+  PFR:=@GCData[tkRcode].NewValue;
+
+  PDestX:=@GCData[tkXcode].NewValue;
+  PDestY:=@GCData[tkYcode].NewValue;
+  PDestZ:=@GCData[tkZcode].NewValue;
+
+  PLastX:=@GCData[tkXcode].PrevValue;
+  PLastY:=@GCData[tkYcode].PrevValue;
+  PLastZ:=@GCData[tkZcode].PrevValue;
+
+
   for linenumber:=0 to Pred(CommandOutputScreen.Lines.Count) do
   begin
     GCode:=TtkGCodeKind.Unknown;
@@ -370,17 +397,9 @@ begin
       case GCodeEnum of
         tkGcode:
           begin
-            Inc(k);
-            TSynCNCSyn(CommandOutputScreen.Highlighter).GetHighlighterAttriAtRowColEx(TPoint.Create(k,linenumber+1),t,i,j,SHA);
-            tTK:=TtkTokenKind(i);
-            if (tTK=tkNumber) then
-            begin
-              GCData[GCodeEnum].ValueSet:=True;
-              GCData[GCodeEnum].NewValue:=GetDouble(t);
-              GCode:=GetGCodeFromString('G'+t);
-              Inc(k,length(t));
-              if (length(t)=0) then Inc(k);
-            end;
+            GCode:=GetGCodeFromString(t);
+            Inc(k,length(t));
+            if (length(t)=0) then Inc(k);
           end;
         else
           begin
@@ -617,29 +636,51 @@ begin
 end;
 
 procedure TGCodeViewer.btnTraceGCodeClick(Sender: TObject);
+begin
+  TraceGCode(Sender);
+end;
+
+procedure TGCodeViewer.TraceGCode(Sender: TObject);
 const
-  OFFSET = 20;
+  OFFSET = 0;
+  RESOLUTION = 2000;
 var
   ac:TBGRACustomPathCursor;
   cp:TPointF;
   cc:TBGRAPixel;
   i:integer;
   sx,sy:double;
+  px,py:integer;
   md,ad: single;
+  newlocalp : TBGRAPath;
+  newplocal_boundsF:TRectF;
 begin
-  if newp_boundsF.Width=0 then exit;
-  if newp_boundsF.Height=0 then exit;
+  newlocalp:=newp;
+  newplocal_boundsF:=newp_boundsF;
 
-  md:=(newp_boundsF.Width+newp_boundsF.Height)/2000;
-  Image1.Picture.Clear;
+  if (Sender=btnTraceView) then
+  begin
+    newlocalp:=TBGRAPath.Create;
+    newlocalp.translate(newplocal_boundsF.Left,newplocal_boundsF.Top);
+  end;
+  if newplocal_boundsF.Width=0 then exit;
+  if newplocal_boundsF.Height=0 then exit;
 
-  sx:=(Image1.Width-2*OFFSET)/newp_boundsF.Width;
-  sy:=(Image1.Height-2*OFFSET)/newp_boundsF.Height;
+  sx:=(Image1.Width-2*OFFSET)/newplocal_boundsF.Width;
+  sy:=(Image1.Height-2*OFFSET)/newplocal_boundsF.Height;
 
   if sy<sx then sx:=sy;
   if sx<sy then sy:=sx;
 
-  ac:=newp.CreateCursor(md);
+  if (Sender=btnTraceView) then
+  begin
+    newlocalp.SetPoints(newc.currentPath);
+  end;
+
+  md:=(newplocal_boundsF.Width+newplocal_boundsF.Height)/RESOLUTION;
+  ac:=newlocalp.CreateCursor(md);
+
+  Image1.Picture.Clear;
 
   repeat
     cp:=ac.CurrentCoordinate;
@@ -647,17 +688,35 @@ begin
     if cc=BGRABlack then cc:=CSSRed;
     ad:=MapHeight(cc);
     ad:=(ad-0.5)*100000;
-    //Image1.Canvas.DrawPixel(round((cp.x-newp_boundsF.Left)*sx)+OFFSET,Image1.Height-(round((cp.y-newp_boundsF.Top)*sy))-OFFSET,FPColor($8FF*abs(round(ad)),$8FF*abs(round(ad)),0,alphaOpaque));
-    Image1.Canvas.DrawPixel(round((cp.x-newp_boundsF.Left)*sx)+OFFSET,Image1.Height-(round((cp.y-newp_boundsF.Top)*sy))-OFFSET,FPColor(cc.red*256,cc.green*256,cc.blue*256));
-    Application.ProcessMessages;
+    px:=(Round((cp.x-newplocal_boundsF.Left)*sx)+OFFSET);
+    if (Sender=btnTraceGCode) then
+    begin
+      py:=(Image1.Height-(round((cp.y-newplocal_boundsF.Top)*sy))-OFFSET);
+    end;
+    if (Sender=btnTraceView) then
+    begin
+      py:=Round((cp.y-newplocal_boundsF.Top)*sy)+OFFSET;
+    end;
+    if ((px>=0) AND (px<Image1.Width) AND (py>=0) AND (py<Image1.Height)) then
+    begin
+      //Image1.Canvas.DrawPixel(px,py,,FPColor($8FF*abs(round(ad)),$8FF*abs(round(ad)),0,alphaOpaque));
+      Image1.Canvas.DrawPixel(px,py,FPColor(cc.red*256,cc.green*256,cc.blue*256));
+      Application.ProcessMessages;
+    end;
     ad:=ac.MoveForward(md,true);
     if ad=0 then break;
   until false;
 
   ac.Destroy;
 
+  if (Sender=Self.btnTraceView) then
+  begin
+    newlocalp.Free;
+  end;
+
   Memo1.Lines.Append('Tracing ready');
 end;
+
 
 procedure TGCodeViewer.BGRAVirtualScreen2Redraw(Sender: TObject;
   Bitmap: TBGRABitmap);
@@ -669,7 +728,7 @@ end;
 procedure TGCodeViewer.BGRAVirtualScreen3Redraw(Sender: TObject;
   Bitmap: TBGRABitmap);
 var
-  newc: TBGRACanvas2D;
+  newlocalc: TBGRACanvas2D;
   sx,sy:Double;
   vs:TBGRAVirtualScreen;
 begin
@@ -684,19 +743,19 @@ begin
   sx:=vs.Width/newp_boundsF.Width;
   sy:=vs.Height/newp_boundsF.Height;
 
-  newc:=Bitmap.Canvas2D;
+  newlocalc:=Bitmap.Canvas2D;
 
-  newc.resetTransform;
-  newc.strokeResetTransform;
-  newc.lineJoinLCL:= pjsBevel;
-  newc.beginPath;
-  newc.scale(sx,-sy);
-  newc.strokeStyle(clRed);
-  if (newp_boundsF.Bottom>0) then newc.translate(0,-newp_boundsF.Bottom);
-  newc.translate(-newp_boundsF.Left,0);
-  newc.addPath(newp);
-  newc.closePath;
-  newc.stroke;
+  newlocalc.resetTransform;
+  newlocalc.strokeResetTransform;
+  newlocalc.lineJoinLCL:= pjsBevel;
+  newlocalc.beginPath;
+  newlocalc.scale(sx,-sy);
+  newlocalc.strokeStyle(clRed);
+  if (newp_boundsF.Bottom>0) then newlocalc.translate(0,-newp_boundsF.Bottom);
+  newlocalc.translate(-newp_boundsF.Left,0);
+  newlocalc.addPath(newp);
+  newlocalc.closePath;
+  newlocalc.stroke;
 end;
 
 procedure TGCodeViewer.btnLoadBearClick(Sender: TObject);
@@ -797,7 +856,6 @@ end;
 
 procedure TGCodeViewer.UpdateGCodeImage(AUpdateView: boolean=true);
 var
-  newc: TBGRACanvas2D;
   sx,sy:Double;
   vs:TBGRAVirtualScreen;
 begin

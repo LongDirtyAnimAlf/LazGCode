@@ -40,9 +40,9 @@ object GCodeViewer: TGCodeViewer
     TabOrder = 0
   end
   object buttonQuit: TButton
-    Left = 272
+    Left = 464
     Height = 25
-    Top = 64
+    Top = 16
     Width = 59
     Caption = 'Quit'
     OnClick = buttonQuitClick
@@ -18000,5 +18000,19 @@ object GCodeViewer: TGCodeViewer
     BorderSpacing.Right = 12
     Caption = 'Panel2'
     TabOrder = 11
+  end
+  object btnTraceView: TButton
+    AnchorSideLeft.Control = btnTraceGCode
+    AnchorSideLeft.Side = asrBottom
+    AnchorSideTop.Control = btnRenderGCode
+    Left = 227
+    Height = 25
+    Top = 66
+    Width = 82
+    AutoSize = True
+    BorderSpacing.Left = 12
+    Caption = 'Trace View'
+    OnClick = btnTraceGCodeClick
+    TabOrder = 12
   end
 end
