@@ -594,10 +594,10 @@ object GCodeViewer: TGCodeViewer
     AnchorSideTop.Side = asrBottom
     AnchorSideRight.Control = Panel2
     AnchorSideRight.Side = asrBottom
-    Left = 782
-    Height = 313
-    Top = 384
-    Width = 318
+    Left = 800
+    Height = 300
+    Top = 415
+    Width = 300
     Anchors = [akLeft, akTop, akRight]
     BorderSpacing.Top = 8
     StretchOutEnabled = False
@@ -611,10 +611,10 @@ object GCodeViewer: TGCodeViewer
     AnchorSideRight.Side = asrBottom
     AnchorSideBottom.Control = Owner
     AnchorSideBottom.Side = asrBottom
-    Left = 782
-    Height = 128
-    Top = 705
-    Width = 318
+    Left = 800
+    Height = 110
+    Top = 723
+    Width = 300
     Anchors = [akLeft, akTop, akRight, akBottom]
     BorderSpacing.Top = 8
     BorderSpacing.Bottom = 8
@@ -17979,7 +17979,7 @@ object GCodeViewer: TGCodeViewer
     Left = 8
     Height = 730
     Top = 103
-    Width = 762
+    Width = 780
     Anchors = [akLeft, akTop, akRight, akBottom]
     BorderSpacing.Left = 8
     BorderSpacing.Top = 12
@@ -17992,10 +17992,10 @@ object GCodeViewer: TGCodeViewer
   object Panel2: TPanel
     AnchorSideTop.Control = Panel1
     AnchorSideRight.Control = CommandOutputScreen
-    Left = 782
-    Height = 269
+    Left = 800
+    Height = 300
     Top = 103
-    Width = 318
+    Width = 300
     Anchors = [akTop, akRight]
     BorderSpacing.Right = 12
     Caption = 'Panel2'

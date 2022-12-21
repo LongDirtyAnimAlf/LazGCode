@@ -90,14 +90,29 @@ type
 
 const
   GCODE_NONMODAL: set of TtkGCodeKind = [G4, G10, G28, G30, G53, G92, G92_1, G92_2, G92_3];
-  GCODE_MOTION : set of TtkGCodeKind = [G0, G1, G2, G3, G5, G5_1, G5_2, G80, G81, G82, G84, G85, G86, G87, G88, G89];
+
+  GCODE_MOTION : set of TtkGCodeKind = [G0, G1, G2, G3, G5, G5_1, G5_2, G33, G38, G73, G76, G80, G81, G82, G84, G85, G86, G87, G88, G89];
+  GCODE_PLANE : set of TtkGCodeKind = [G17, G18, G19];
   GCODE_DISTANCE : set of TtkGCodeKind = [G90, G91];
   GCODE_ARCDISTANCE : set of TtkGCodeKind = [G90_1,G91_1];
-  GCODE_PLANE : set of TtkGCodeKind = [G17, G18, G19];
   GCODE_FEED : set of TtkGCodeKind = [G93, G94];
   GCODE_UNIT : set of TtkGCodeKind = [G20, G21];
-  GCODE_COORDINATE : set of TtkGCodeKind = [G54, G55, G56, G57, G58, G59];
   GCODE_CUTTERCOMP : set of TtkGCodeKind = [G40, G41, G42];
+  //Group 8 {G43, G43.1, G49} tool length offset
+  //Group 10 {G98, G99} return mode in canned cycles
+  GCODE_COORDINATE : set of TtkGCodeKind = [G54, G55, G56, G57, G58, G59];
+  //Group 13 {G61, G61.1, G64} path control mode
+  //Group 14 {G96, G97} spindle speed mode
+  //Group 15 {G07, G08} lathe diameter mode
+
+  //MCODE
+  //Group 4 {M00, M01, M02, M30, M60} stopping
+  //Group 7 {M03, M04, M05} spindle turning
+  //Group 8 {M07, M08, M09} coolant (special case: M07 and M08 may be active at the same time)
+  //Group 9 {M48, M49} enable/disable feed and speed override controls
+  //Group 10 {operator defined M100 to M199}
+
+
 
 type
   { TGCodeViewer }
@@ -297,6 +312,8 @@ begin
 end;
 
 procedure TGCodeViewer.btnRenderGCodeClick(Sender: TObject);
+const
+  AXISNUMBERS : set of TtkTokenKind = [tkXcode, tkYcode, tkZcode, tkAcode, tkBcode, tkCcode, tkUcode, tkVcode, tkWcode];
 var
   linenumber,i,j,k      : integer;
   t                     : string;
@@ -312,14 +329,16 @@ var
   DestX,DestY,DestZ     : PDouble;
   LastX,LastY,LastZ     : PDouble;
 
-  GotXYZ                : boolean;
+  GotAxis               : boolean;
   GotIJK                : boolean;
   GotPQ                 : boolean;
   GotR                  : boolean;
   Q1,Q2,Q3,Q4           : boolean;
   PolarMode             : boolean;
 
-  GCodeEnum             : TtkTokenKind;
+  TokenEnumerator       : TtkTokenKind;
+  GCodeEnumerator       : TtkGCodeKind;
+
   GCodeMotion           : TtkGCodeKind;
   GCodePlane            : TtkGCodeKind;
   GCodeDistance         : TtkGCodeKind;
@@ -349,6 +368,8 @@ begin
 
   GCData:=Default(TGCodeDataArray);
 
+  GCode:=TtkGCodeKind.Unknown;
+
   FF:=@GCData[tkFcode].NewValue;
   FI:=@GCData[tkIcode].NewValue;
   FJ:=@GCData[tkJcode].NewValue;
@@ -367,15 +388,14 @@ begin
 
   for linenumber:=0 to Pred(CommandOutputScreen.Lines.Count) do
   begin
-    GCode:=TtkGCodeKind.Unknown;
-    for GCodeEnum in TtkTokenKind do GCData[GCodeEnum].ValueSet:=False;
+    for TokenEnumerator in TtkTokenKind do GCData[TokenEnumerator].ValueSet:=False;
     k:=1;
     repeat
       TSynCNCSyn(CommandOutputScreen.Highlighter).GetHighlighterAttriAtRowColEx(TPoint.Create(k,linenumber+1),t,i,j,SHA);
       if (SHA=nil) then break;
       //if Assigned(SHA) then  Memo1.Lines.Append(SHA.Name);
-      GCodeEnum:=TtkTokenKind(i);
-      case GCodeEnum of
+      TokenEnumerator:=TtkTokenKind(i);
+      case TokenEnumerator of
         tkGcode:
           begin
             GCode:=GetGCodeFromString(t);
@@ -384,7 +404,7 @@ begin
           end;
         else
           begin
-            if GCodeEnum in [
+            if TokenEnumerator in [
               tkComment,
               tkText,
               tkReserved,
@@ -408,8 +428,13 @@ begin
                 tTK:=TtkTokenKind(i);
                 if (tTK=tkNumber) then
                 begin
-                  GCData[GCodeEnum].ValueSet:=True;
-                  GCData[GCodeEnum].NewValue:=GetDouble(t);
+                  tTK:=TokenEnumerator;
+                  // Tokens U,V and W are same as Tokes A,B and C
+                  if tTK=tkUcode then tTK:=tkAcode;
+                  if tTK=tkVcode then tTK:=tkBcode;
+                  if tTK=tkWcode then tTK:=tkCcode;
+                  GCData[tTK].ValueSet:=True;
+                  GCData[tTK].NewValue:=GetDouble(t);
                   Inc(k,length(t));
                   if (length(t)=0) then Inc(k);
                 end;
@@ -436,25 +461,40 @@ begin
       // Modal values valid
     end;
 
-    for GCodeEnum in [tkXcode,tkYcode,tkZcode] do
+    for TokenEnumerator in AXISNUMBERS do
     begin
-      GotXYZ:=GCData[GCodeEnum].ValueSet;
-      if GotXYZ then break;
+      GotAxis:=GCData[TokenEnumerator].ValueSet;
+      if GotAxis then break;
     end;
-    for GCodeEnum in [tkIcode,tkJcode,tkKcode] do
+    for TokenEnumerator in [tkIcode,tkJcode,tkKcode] do
     begin
-      GotIJK:=GCData[GCodeEnum].ValueSet;
+      GotIJK:=GCData[TokenEnumerator].ValueSet;
       if GotIJK then break;
     end;
-    for GCodeEnum in [tkPcode,tkQcode] do
+    for TokenEnumerator in [tkPcode,tkQcode] do
     begin
-      GotPQ:=GCData[GCodeEnum].ValueSet;
+      GotPQ:=GCData[TokenEnumerator].ValueSet;
       if GotPQ then break;
     end;
     GotR    := ((GCData[tkRcode].ValueSet));
 
-    // Did we receive a line with XYZ coordinates ?
-    if GotXYZ then
+    if (GCodeMotion=TtkGCodeKind.G91) then
+    begin
+      for TokenEnumerator in TtkTokenKind do
+      begin
+        if TokenEnumerator in AXISNUMBERS then
+        begin
+          // If we got a value, add it to its previous value: we are in relative mode
+          if GCData[TokenEnumerator].ValueSet then
+          begin
+            GCData[TokenEnumerator].NewValue:=GCData[TokenEnumerator].PrevValue+GCData[TokenEnumerator].NewValue;
+          end;
+        end;
+      end;
+    end;
+
+    // Did we receive a line with axis coordinates ?
+    if GotAxis then
     begin
       // Lines / moves
       if (GCodeMotion in [TtkGCodeKind.G0,TtkGCodeKind.G1]) then
@@ -588,10 +628,21 @@ begin
 
     end;
 
-    for GCodeEnum in TtkTokenKind do
+    // All done
+    // Process the data for the next line of GCode
+
+    for TokenEnumerator in TtkTokenKind do
     begin
-      if GCData[GCodeEnum].ValueSet then GCData[GCodeEnum].PrevValue:=GCData[GCodeEnum].NewValue;
+      // If we got a value, store it for later use
+      if GCData[TokenEnumerator].ValueSet then GCData[TokenEnumerator].PrevValue:=GCData[TokenEnumerator].NewValue;
     end;
+
+    for GCodeEnumerator in TtkGCodeKind do
+    begin
+      // Reset GCode if in non-modal group
+      if GCodeEnumerator in GCODE_NONMODAL then GCode:=TtkGCodeKind.Unknown;
+    end;
+
 
     // GOTO NEXT GCODE LINE
   end;
