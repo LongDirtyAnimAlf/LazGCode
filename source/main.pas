@@ -468,9 +468,7 @@ begin
         if (GCodeMotion=TtkGCodeKind.G1) then newp.lineTo(DestX,DestY);
         if GCData[tkZcode].ValueSet then
         begin
-          //newp.addColor(MapHeightToBGRA((DestX*DestY)/40000,0));
-          newp.addColor(MapHeightToBGRA(Abs(DestZ+3)/15,0));
-          //newp.addColor(BGRA(Round(DestZ*8),255,255,0));
+          newp.addColor(MapHeightToBGRA(0.5+(DestZ/(100000)),255));
         end;
         //newp.arcDeg(DestX,DestY,0.1,0,360);
         //newp.moveTo(DestX,DestY);
@@ -646,8 +644,11 @@ begin
   repeat
     cp:=ac.CurrentCoordinate;
     cc:=TBGRAPathCursor(ac).CurrentSegmentColor;
-    ad:=MapHeight(cc)*$FFFF;
-    Image1.Canvas.DrawPixel(round((cp.x-newp_boundsF.Left)*sx)+OFFSET,Image1.Height-(round((cp.y-newp_boundsF.Top)*sy))-OFFSET,FPColor(round(ad),$FFFF,0,alphaOpaque));
+    if cc=BGRABlack then cc:=CSSRed;
+    ad:=MapHeight(cc);
+    ad:=(ad-0.5)*100000;
+    //Image1.Canvas.DrawPixel(round((cp.x-newp_boundsF.Left)*sx)+OFFSET,Image1.Height-(round((cp.y-newp_boundsF.Top)*sy))-OFFSET,FPColor($8FF*abs(round(ad)),$8FF*abs(round(ad)),0,alphaOpaque));
+    Image1.Canvas.DrawPixel(round((cp.x-newp_boundsF.Left)*sx)+OFFSET,Image1.Height-(round((cp.y-newp_boundsF.Top)*sy))-OFFSET,FPColor(cc.red*256,cc.green*256,cc.blue*256));
     Application.ProcessMessages;
     ad:=ac.MoveForward(md,true);
     if ad=0 then break;

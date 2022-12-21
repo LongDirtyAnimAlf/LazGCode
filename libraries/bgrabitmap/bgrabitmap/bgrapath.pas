@@ -1304,7 +1304,11 @@ begin
       peColor:
         begin
           FCurrentElementEndCoord := FCurrentElementStartCoord;
-          FCurrentSegmentColor :=PColorElement(FCurrentElement)^.Color;
+          //FCurrentSegmentColor :=BGRA();//(  PColorElement(FCurrentElement)^.Color;
+          FCurrentSegmentColor.blue:=((PColorElement(FCurrentElement)^.Color) shr TBGRAPixel_BlueShift) AND $FF;
+          FCurrentSegmentColor.green:=((PColorElement(FCurrentElement)^.Color) shr TBGRAPixel_GreenShift) AND $FF;
+          FCurrentSegmentColor.red:=((PColorElement(FCurrentElement)^.Color) shr TBGRAPixel_RedShift) AND $FF;
+          FCurrentSegmentColor.alpha:=((PColorElement(FCurrentElement)^.Color) shr TBGRAPixel_AlphaShift) AND $FF;
         end;
       peLineTo, peCloseSubPath:
         begin
@@ -2545,6 +2549,11 @@ begin
     PreviousElementType := FLastStoredElementType;
   end;
   result := FData+(FDataPos+SizeOf(TPathElementHeader));
+  if AElementType=peColor then
+  begin
+    PColorElement(result)^.Color:=0;
+  end;
+
   FLastSubPathElementType:= AElementType;
   FLastStoredElementType:= AElementType;
   Inc(FDataPos, sizeof(TPathElementHeader)+t);
