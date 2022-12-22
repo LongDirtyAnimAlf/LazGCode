@@ -7,8 +7,8 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs,
   StdCtrls, EditBtn, ExtCtrls, Types,
-  SynEdit, SynEditHighlighter, SynHighlighterCNC,
-  BGRAPath, BGRABitmapTypes, BGRABitmap, BGRACanvas2D, BGRAVirtualScreen, BGRALayers;
+  SynEdit, SynEditHighlighter, SynHighlighterCNC,SynEditTypes,
+  BGRAPath, BGRABitmapTypes, BGRABitmap, BGRACanvas2D, BGRAVirtualScreen, BGRALayers, SynEditMarkupSpecialLine;
 
 type
   TtkGCodeKind =
@@ -133,7 +133,9 @@ type
     btnTraceView: TButton;
     buttonQuit: TButton;
     CommandOutputScreen: TSynEdit;
+    editXPosition: TEdit;
     editFileInput: TFileNameEdit;
+    editYPosition: TEdit;
     Image1: TImage;
     Label1: TLabel;
     Memo1: TMemo;
@@ -141,13 +143,13 @@ type
     memoBear: TMemo;
     Panel1: TPanel;
     Panel2: TPanel;
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
     procedure btnLoadBearClick(Sender: TObject);
     procedure btnRenderGCodeClick(Sender: TObject);
     procedure btnTraceGCodeClick(Sender: TObject);
     procedure buttonQuitClick(Sender: TObject);
     procedure editFileInputAcceptFileName(Sender: TObject; var Value: String);
-    procedure FormCreate(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
     procedure Panel1Resize(Sender: TObject);
   private
     { private declarations }
@@ -163,6 +165,8 @@ type
     moving        : boolean;
     moveOrigin    : TPoint;
     moveTranslate : TPoint;
+
+    realzoomx,realzoomy,realposx,realposy:double;
 
     bmpl          : TBGRALayeredBitmap;
     FFlattened    : TBGRABitmap;
@@ -183,6 +187,7 @@ type
     procedure UpdateGCodeImage(AUpdateView: boolean=true);
     procedure UpdateCursorImage(Location:TPoint;AUpdateView: boolean=true);
 
+    procedure RenderGCode;
     procedure TraceGCode(Sender: TObject);
   public
     { public declarations }
@@ -312,10 +317,24 @@ begin
 end;
 
 procedure TGCodeViewer.btnRenderGCodeClick(Sender: TObject);
+begin
+  RenderGCode;
+
+  // Update small gcode parser output
+  BGRAVirtualScreen3.DiscardBitmap;
+
+  // Update main gcode parser output
+  UpdateGCodeImage;
+
+  Memo1.Lines.Append('Render ready');
+end;
+
+procedure TGCodeViewer.RenderGCode;
 const
   AXISNUMBERS : set of TtkTokenKind = [tkXcode, tkYcode, tkZcode, tkAcode, tkBcode, tkCcode, tkUcode, tkVcode, tkWcode];
 var
   linenumber,i,j,k      : integer;
+  gcodeindex            : integer;
   s,t                   : string;
   SHA                   : TSynHighlighterAttributes;
   tTK                   : TtkTokenKind;
@@ -347,6 +366,9 @@ var
   GCodeUnits            : TtkGCodeKind;
   GCodeCoordinate       : TtkGCodeKind;
   GCodeCutterComp       : TtkGCodeKind;
+
+  LineGCodes : array [0..10] of TtkGCodeKind;
+
 begin
   zoom          := 1;
   moveTranslate := Point(0,0);
@@ -389,6 +411,8 @@ begin
   for linenumber:=0 to Pred(CommandOutputScreen.Lines.Count) do
   begin
     for TokenEnumerator in TtkTokenKind do GCData[TokenEnumerator].ValueSet:=False;
+    for i:=Low(LineGCodes) to High(LineGCodes) do LineGCodes[i]:=TtkGCodeKind.Unknown;
+    gcodeindex:=0;
     SHA:=nil;
     i:=0;
     t:='';
@@ -401,6 +425,22 @@ begin
           tkGcode:
             begin
               GCode:=GetGCodeFromString(t);
+
+              // Store received line gcodes
+              LineGCodes[gcodeindex]:=GCode;
+              Inc(gcodeindex);
+
+              // Set modal modes, if any
+              if GCode in GCODE_MOTION then GCodeMotion:=GCode;
+              if GCode in GCODE_DISTANCE then GCodeDistance:=GCode;
+              if GCode in GCODE_ARCDISTANCE then GCodeArcDistance:=GCode;
+              if GCode in GCODE_PLANE then GCodePlane:=GCode;
+              if GCode in GCODE_FEED then GCodeFeed:=GCode;
+              if GCode in GCODE_UNIT then GCodeUnits:=GCode;
+              if GCode in GCODE_COORDINATE then GCodeCoordinate:=GCode;
+              if GCode in GCODE_CUTTERCOMP then GCodeCutterComp:=GCode;
+              if GCode=TtkGCodeKind.G16 then PolarMode:=True;
+              if GCode=TtkGCodeKind.G15 then PolarMode:=False;
               Inc(k,length(t));
               if (length(t)=0) then Inc(k);
             end;
@@ -464,24 +504,6 @@ begin
       if (SHA=nil) then break;
     until false;
 
-    // Set modal modes, if any
-    if GCode in GCODE_MOTION then GCodeMotion:=GCode;
-    if GCode in GCODE_DISTANCE then GCodeDistance:=GCode;
-    if GCode in GCODE_ARCDISTANCE then GCodeArcDistance:=GCode;
-    if GCode in GCODE_PLANE then GCodePlane:=GCode;
-    if GCode in GCODE_FEED then GCodeFeed:=GCode;
-    if GCode in GCODE_UNIT then GCodeUnits:=GCode;
-    if GCode in GCODE_COORDINATE then GCodeCoordinate:=GCode;
-    if GCode in GCODE_CUTTERCOMP then GCodeCutterComp:=GCode;
-    if GCode=TtkGCodeKind.G16 then PolarMode:=True;
-    if GCode=TtkGCodeKind.G15 then PolarMode:=False;
-
-    if GCode=TtkGCodeKind.Unknown then
-    begin
-      // No gcode received.
-      // Modal values valid
-    end;
-
     for TokenEnumerator in AXISNUMBERS do
     begin
       GotAxis:=GCData[TokenEnumerator].ValueSet;
@@ -497,21 +519,47 @@ begin
       GotPQ:=GCData[TokenEnumerator].ValueSet;
       if GotPQ then break;
     end;
-    GotR    := ((GCData[tkRcode].ValueSet));
+    GotR :=((GCData[tkRcode].ValueSet));
 
     if (GCodeMotion=TtkGCodeKind.G91) then
     begin
-      for TokenEnumerator in TtkTokenKind do
+      for TokenEnumerator in AXISNUMBERS do
       begin
-        if TokenEnumerator in AXISNUMBERS then
+        // If we got a value, add it to its previous value: we are in relative mode
+        if GCData[TokenEnumerator].ValueSet then
         begin
-          // If we got a value, add it to its previous value: we are in relative mode
-          if GCData[TokenEnumerator].ValueSet then
-          begin
-            GCData[TokenEnumerator].NewValue:=GCData[TokenEnumerator].PrevValue+GCData[TokenEnumerator].NewValue;
-          end;
+          GCData[TokenEnumerator].NewValue:=GCData[TokenEnumerator].PrevValue+GCData[TokenEnumerator].NewValue;
         end;
       end;
+    end;
+
+    for i:=0 to Pred(gcodeindex) do
+    begin
+      //GCode:=LineGCodes[gcodeindex];
+    end;
+
+
+
+    if GCodePlane=TtkGCodeKind.G18 then
+    begin
+      // We are in the XZ plane
+      // Force it into the XY plane
+      if GCData[tkZcode].ValueSet then
+      begin
+        GCData[tkYcode].NewValue:=GCData[tkZcode].NewValue;
+        GCData[tkYcode].ValueSet:=True;
+        GCData[tkZcode].NewValue:=GCData[tkZcode].PrevValue;
+        GCData[tkZcode].ValueSet:=False;
+      end;
+
+      if GCData[tkKcode].ValueSet then
+      begin
+        GCData[tkJcode].NewValue:=GCData[tkKcode].NewValue;
+        GCData[tkJcode].ValueSet:=True;
+        GCData[tkKcode].NewValue:=GCData[tkKcode].PrevValue;
+        GCData[tkKcode].ValueSet:=False;
+      end;
+
     end;
 
     // Did we receive a line with axis coordinates ?
@@ -548,8 +596,8 @@ begin
             FJ^:=-GCData[tkQcode].PrevValue;
           end;
           newp.bezierCurveTo(LastX^+FI^,LastY^+FJ^,DestX^+FP^,DestY^+FQ^,DestX^,DestY^);
-          newp.arcDeg(DestX^,DestY^,0.1,0,360);
-          newp.moveTo(DestX^,DestY^);
+          //newp.arcDeg(DestX^,DestY^,0.1,0,360);
+          //newp.moveTo(DestX^,DestY^);
         end;
       end;
     end;
@@ -671,14 +719,6 @@ begin
   newp.closePath;
   newp_boundsF:=newp.GetBounds(1);
   newp_boundsF.Inflate(4,4);
-
-  // Update small gcode parser output
-  BGRAVirtualScreen3.DiscardBitmap;
-
-  // Update main gcode parser output
-  UpdateGCodeImage;
-
-  Memo1.Lines.Append('Render ready');
 end;
 
 procedure TGCodeViewer.btnTraceGCodeClick(Sender: TObject);
@@ -694,7 +734,6 @@ var
   ac:TBGRACustomPathCursor;
   cp:TPointF;
   cc:TBGRAPixel;
-  i:integer;
   sx,sy:double;
   px,py:integer;
   md,ad: single;
@@ -827,6 +866,12 @@ end;
 procedure TGCodeViewer.BGRAVirtualScreen2MouseMove(Sender: TObject;
   Shift: TShiftState; X, Y: Integer);
 begin
+  if realzoomx=0 then realzoomx:=1;
+  if realzoomy=0 then realzoomy:=1;
+
+  editXPosition.Text:=FloattoStr(((X-realposx)/realzoomx));
+  editYPosition.Text:=FloattoStr(((Y-realposy)/realzoomy));
+
   if moving then
   begin
     moveTranslate.X:=moveTranslate.X+(X-moveOrigin.X);
@@ -841,6 +886,7 @@ begin
   moveOrigin := point(X,Y);
 
   if moving then UpdateGCodeImage;
+
 end;
 
 procedure TGCodeViewer.BGRAVirtualScreen2MouseUp(Sender: TObject;
@@ -928,7 +974,6 @@ begin
   newc.beginPath;
 
   newc.translate(moveTranslate.X,moveTranslate.Y);
-
   newc.scale(sx,-sy);
   newc.strokeStyle(clRed);
   if (newp_boundsF.Bottom>0) then newc.translate(0,-newp_boundsF.Bottom);
@@ -938,6 +983,13 @@ begin
   newc.stroke;
 
   UpdateFlattenedImage(rect(0,0,bmpl.Width,bmpl.Height),AUpdateView);
+
+  realzoomx:=sx;
+  realzoomy:=-sy;
+  realposx:=moveTranslate.X;
+  realposy:=moveTranslate.Y;
+  if (newp_boundsF.Bottom>0) then realposy:=realposy-(realzoomy*newp_boundsF.Bottom);
+  realposx:=realposx-realzoomx*newp_boundsF.Left;
 end;
 
 procedure TGCodeViewer.UpdateCursorImage(Location:TPoint;AUpdateView: boolean=true);
