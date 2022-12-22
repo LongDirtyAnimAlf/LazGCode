@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs,
-  StdCtrls, EditBtn, ExtCtrls, Types,
+  StdCtrls, EditBtn, ExtCtrls, Types, fgl,
   SynEdit, SynEditHighlighter, SynHighlighterCNC,SynEditTypes,
   BGRAPath, BGRABitmapTypes, BGRABitmap, BGRACanvas2D, BGRAVirtualScreen, BGRALayers, SynEditMarkupSpecialLine;
 
@@ -53,6 +53,9 @@ type
   G57,
   G58,
   G59,
+  G59_1,
+  G59_2,
+  G59_3,
   G61,           //Exact Path Mode
   G61_1,         //Exact Stop Mode
   G64,           //Path Control Mode with Optional Tolerance
@@ -208,6 +211,65 @@ uses
 
 { TGCodeViewer }
 
+function Compare(const ACode1,ACode2:TtkGCodeKind):Integer;
+var
+  GCodeEnumerator : TtkGCodeKind;
+  result1,result2:integer;
+  presult:pinteger;
+
+begin
+  result1:=0;
+  result2:=0;
+
+  for GCodeEnumerator in [ACode1,ACode2] do
+  begin
+     if GCodeEnumerator=ACode1 then presult:=@result1;
+     if GCodeEnumerator=ACode2 then presult:=@result2;
+
+     if GCodeEnumerator in [G93, G94] then presult^:=1;
+     if GCodeEnumerator in [G17, G18, G19] then presult^:=2;
+     if GCodeEnumerator in [G20, G21] then presult^:=3;
+     if GCodeEnumerator in [G40, G41, G42] then presult^:=4;
+     if GCodeEnumerator in [G43, G49] then presult^:=5;
+     if GCodeEnumerator in [G54, G55, G56, G57, G58, G59, G59_1, G59_2, G59_3] then presult^:=6;
+     if GCodeEnumerator in [G61, G61_1, G64] then presult^:=7;
+     if GCodeEnumerator in [G90, G91] then presult^:=8;
+     if GCodeEnumerator in [G98, G99] then presult^:=9;
+     if GCodeEnumerator in [G28, G30,G10,G52, G92, G92_1, G92_2, G94] then presult^:=10;
+     if GCodeEnumerator in [G0,G1,G2,G3, G33, G38, G73, G76,   G81,G82,G83,G84,G85,G86,G87,G88,G89] then presult^:=11;
+  end;
+
+  result:=result1-result2;
+
+  (*
+  O-word commands (optionally followed by a comment but no other words allowed on the same line)
+  Comment (including message)
+  Set feed rate mode (G93, G94).
+  Set feed rate (F).
+  Set spindle speed (S).
+  Select tool (T).
+  HAL pin I/O (M62-M68).
+  Change tool (M6) and Set Tool Number (M61).
+  Spindle on or off (M3, M4, M5).
+  Save State (M70, M73), Restore State (M72), Invalidate State (M71).
+  Coolant on or off (M7, M8, M9).
+  Enable or disable overrides (M48, M49,M50,M51,M52,M53).
+  User-defined Commands (M100-M199).
+  Dwell (G4).
+  Set active plane (G17, G18, G19).
+  Set length units (G20, G21).
+  Cutter radius compensation on or off (G40, G41, G42)
+  Cutter length compensation on or off (G43, G49)
+  Coordinate system selection (G54, G55, G56, G57, G58, G59, G59.1, G59.2, G59.3).
+  Set path control mode (G61, G61.1, G64)
+  Set distance mode (G90, G91).
+  Set retract mode (G98, G99).
+  Go to reference location (G28, G30) or change coordinate system data (G10) or set axis offsets (G52, G92, G92.1, G92.2, G94).
+  Perform motion (G0 to G3, G33, G38.n, G73, G76, G80 to G89), as modified (possibly) by G53.
+  Stop (M0, M1, M2, M30, M60).
+  *)
+end;
+
 procedure TGCodeViewer.FormCreate(Sender: TObject);
 begin
   CNC := TSynCNCSyn.Create(CommandOutputScreen);
@@ -332,9 +394,14 @@ end;
 procedure TGCodeViewer.RenderGCode;
 const
   AXISNUMBERS : set of TtkTokenKind = [tkXcode, tkYcode, tkZcode, tkAcode, tkBcode, tkCcode, tkUcode, tkVcode, tkWcode];
+type
+  TGCodeList = specialize TFPGList<TtkGCodeKind>;
+  TTokenList = specialize TFPGList<TtkTokenKind>;
 var
+  GCodeList             : TGCodeList;
+  TokenList             : TTokenList;
+
   linenumber,i,j,k      : integer;
-  gcodeindex            : integer;
   s,t                   : string;
   SHA                   : TSynHighlighterAttributes;
   tTK                   : TtkTokenKind;
@@ -366,10 +433,10 @@ var
   GCodeUnits            : TtkGCodeKind;
   GCodeCoordinate       : TtkGCodeKind;
   GCodeCutterComp       : TtkGCodeKind;
-
-  LineGCodes : array [0..10] of TtkGCodeKind;
-
 begin
+  GCodeList:=TGCodeList.Create;
+
+
   zoom          := 1;
   moveTranslate := Point(0,0);
 
@@ -411,8 +478,7 @@ begin
   for linenumber:=0 to Pred(CommandOutputScreen.Lines.Count) do
   begin
     for TokenEnumerator in TtkTokenKind do GCData[TokenEnumerator].ValueSet:=False;
-    for i:=Low(LineGCodes) to High(LineGCodes) do LineGCodes[i]:=TtkGCodeKind.Unknown;
-    gcodeindex:=0;
+    GCodeList.Clear;
     SHA:=nil;
     i:=0;
     t:='';
@@ -425,11 +491,8 @@ begin
           tkGcode:
             begin
               GCode:=GetGCodeFromString(t);
-
               // Store received line gcodes
-              LineGCodes[gcodeindex]:=GCode;
-              Inc(gcodeindex);
-
+              GCodeList.Add(GCode);
               // Set modal modes, if any
               if GCode in GCODE_MOTION then GCodeMotion:=GCode;
               if GCode in GCODE_DISTANCE then GCodeDistance:=GCode;
@@ -533,12 +596,24 @@ begin
       end;
     end;
 
-    for i:=0 to Pred(gcodeindex) do
+    // Now sort the gcodes according to their prescribed priority
+    // This is just for testing for now
+    // We should also sort other codes in priority.
+    if GCodeList.Count>1 then
     begin
-      //GCode:=LineGCodes[gcodeindex];
+      GCodeList.Sort(@Compare);
+      s:='';
+      for GCodeEnumerator in GCodeList do
+      begin
+        t:=GetEnumNameUnCamel(TypeInfo(TtkGCodeKind),Ord(GCodeEnumerator));
+        i:=Pos('_',t);
+        if (i>0) then t[i]:='.';
+        s:=s+t+' ';
+      end;
+      Memo1.Lines.Append(CommandOutputScreen.Lines[linenumber]);
+      Memo1.Lines.Append(s);
+      Application.ProcessMessages;
     end;
-
-
 
     if GCodePlane=TtkGCodeKind.G18 then
     begin
@@ -719,6 +794,8 @@ begin
   newp.closePath;
   newp_boundsF:=newp.GetBounds(1);
   newp_boundsF.Inflate(4,4);
+
+  GCodeList.Free;
 end;
 
 procedure TGCodeViewer.btnTraceGCodeClick(Sender: TObject);
