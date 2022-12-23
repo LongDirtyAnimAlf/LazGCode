@@ -33,7 +33,7 @@ type
   G15,G16,       //Polar/cartesian mode for G0/G1
   G17,G18,G19,   //Plane Select
   G20,G21,       //Set Units of Measure
-  G28,           //Go to Predefined Position
+  G28,           //Go to Predefined Position (Home all axes (X, Y, and Z))
   G30,           //Go to Predefined Position
   G33,           //Spindle Synchronized Motion
   G33_1,         //Rigid Tapping
@@ -421,6 +421,7 @@ var
   GotR                  : boolean;
   Q1,Q2,Q3,Q4           : boolean;
   PolarMode             : boolean;
+  OffsetMode            : boolean;
 
   TokenEnumerator       : TtkTokenKind;
   GCodeEnumerator       : TtkGCodeKind;
@@ -454,6 +455,7 @@ begin
   GCodeCutterComp:=TtkGCodeKind.G40;
 
   PolarMode:=False;
+  OffsetMode:=False;
 
   GCData:=Default(TGCodeDataArray);
 
@@ -493,21 +495,15 @@ begin
               GCode:=GetGCodeFromString(t);
               // Store received line gcodes
               GCodeList.Add(GCode);
-              // Set modal modes, if any
-              if GCode in GCODE_MOTION then GCodeMotion:=GCode;
-              if GCode in GCODE_DISTANCE then GCodeDistance:=GCode;
-              if GCode in GCODE_ARCDISTANCE then GCodeArcDistance:=GCode;
-              if GCode in GCODE_PLANE then GCodePlane:=GCode;
-              if GCode in GCODE_FEED then GCodeFeed:=GCode;
-              if GCode in GCODE_UNIT then GCodeUnits:=GCode;
-              if GCode in GCODE_COORDINATE then GCodeCoordinate:=GCode;
-              if GCode in GCODE_CUTTERCOMP then GCodeCutterComp:=GCode;
-              if GCode=TtkGCodeKind.G16 then PolarMode:=True;
-              if GCode=TtkGCodeKind.G15 then PolarMode:=False;
               Inc(k,length(t));
               if (length(t)=0) then Inc(k);
             end;
           tkNcode:
+            begin
+              Inc(k,length(t));
+              if (length(t)=0) then Inc(k);
+            end;
+          tkParam:
             begin
               Inc(k,length(t));
               if (length(t)=0) then Inc(k);
@@ -567,6 +563,32 @@ begin
       if (SHA=nil) then break;
     until false;
 
+
+    // Process received GCodes
+    if (GCodeList.Count>0) then
+    begin
+      // Sort the gcodes according to their prescribed priority
+      if (GCodeList.Count>1) then GCodeList.Sort(@Compare);
+      for GCodeEnumerator in GCodeList do
+      begin
+        // Set modal modes, if any
+        if GCodeEnumerator in GCODE_MOTION then GCodeMotion:=GCode;
+        if GCodeEnumerator in GCODE_DISTANCE then GCodeDistance:=GCode;
+        if GCodeEnumerator in GCODE_ARCDISTANCE then GCodeArcDistance:=GCode;
+        if GCodeEnumerator in GCODE_PLANE then GCodePlane:=GCode;
+        if GCodeEnumerator in GCODE_FEED then GCodeFeed:=GCode;
+        if GCodeEnumerator in GCODE_UNIT then GCodeUnits:=GCode;
+        if GCodeEnumerator in GCODE_COORDINATE then GCodeCoordinate:=GCode;
+        if GCodeEnumerator in GCODE_CUTTERCOMP then GCodeCutterComp:=GCode;
+        if GCodeEnumerator=TtkGCodeKind.G16 then PolarMode:=True;
+        if GCodeEnumerator=TtkGCodeKind.G15 then PolarMode:=False;
+        if GCodeEnumerator=TtkGCodeKind.G92 then OffsetMode:=True;
+        if GCodeEnumerator=TtkGCodeKind.G92_1 then OffsetMode:=False;
+      end;
+    end;
+
+
+
     for TokenEnumerator in AXISNUMBERS do
     begin
       GotAxis:=GCData[TokenEnumerator].ValueSet;
@@ -596,24 +618,6 @@ begin
       end;
     end;
 
-    // Now sort the gcodes according to their prescribed priority
-    // This is just for testing for now
-    // We should also sort other codes in priority.
-    if GCodeList.Count>1 then
-    begin
-      GCodeList.Sort(@Compare);
-      s:='';
-      for GCodeEnumerator in GCodeList do
-      begin
-        t:=GetEnumNameUnCamel(TypeInfo(TtkGCodeKind),Ord(GCodeEnumerator));
-        i:=Pos('_',t);
-        if (i>0) then t[i]:='.';
-        s:=s+t+' ';
-      end;
-      Memo1.Lines.Append(CommandOutputScreen.Lines[linenumber]);
-      Memo1.Lines.Append(s);
-      Application.ProcessMessages;
-    end;
 
     if GCodePlane=TtkGCodeKind.G18 then
     begin

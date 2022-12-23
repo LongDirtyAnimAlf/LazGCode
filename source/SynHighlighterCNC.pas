@@ -26,15 +26,17 @@ type
   tkText,    //string text
   tkReserved,//Reserved text
   tkNull,    //null text
+  tkParam,   //parameter
   tkNumber,  //number text
   tkSpace,   //space
+  tkEqual,   //equal symbol
   tkAbstract,//abstract symbol
 
   tkAcode,   //A axis of machine
   tkBcode,   //B axis of machine
   tkCcode,   //C axis of machine
   tkDcode,   //Tool radius compensation number
-  tkEcode,
+  tkEcode,   //Used for the filament position 3D printing
   tkFcode,   //Feed rate
   tkGcode,   //General function
   tkHcode,   //Tool length offset index
@@ -97,6 +99,7 @@ type
     FStringAttri: TSynHighlighterAttributes;
     FReservedAttri: TSynHighlighterAttributes;
     FNormalAttri: TSynHighlighterAttributes;
+    FParameterAttri: TSynHighlighterAttributes;
     FNumberAttri: TSynHighlighterAttributes;
     FSpaceAttri: TSynHighlighterAttributes;
     FSymbolAttri: TSynHighlighterAttributes;
@@ -137,6 +140,7 @@ type
     procedure CommentProc;
     procedure SymbolProc;
     procedure NumberProc;
+    procedure ParameterProc;
 
     procedure ACodeProc;
     procedure BCodeProc;
@@ -246,6 +250,7 @@ type
    property StringAttri: TSynHighlighterAttributes read FStringAttri write FStringAttri;
    property ReservedAttri: TSynHighlighterAttributes read FReservedAttri write FReservedAttri;
    property NormalAttri: TSynHighlighterAttributes read FNormalAttri write FNormalAttri;
+   property ParameterAttri: TSynHighlighterAttributes read FParameterAttri write FParameterAttri;
    property NumberAttri: TSynHighlighterAttributes read FNumberAttri write FNumberAttri;
    property SpaceAttri: TSynHighlighterAttributes read FSpaceAttri write FSpaceAttri;
    property SymbolAttri: TSynHighlighterAttributes read FSymbolAttri write FSymbolAttri;
@@ -821,7 +826,7 @@ procedure TSynCNCSyn.SymbolProc;
 begin
   FTokenID := tkNormal;
   case FLine[Run] of
-    '%','[',']','#','@','^','*':
+    '%','[',']','@','^','*':
       begin
         FTokenID := tkAbstract;
         inc(Run, 1);
@@ -832,6 +837,11 @@ begin
        repeat
           inc(Run, 1);
        until IsLineEnd(Run);
+     end;
+     '=':
+     begin
+       FTokenID := tkEqual;
+       inc(Run, 1);
      end
   else
     SpaceProc;
@@ -899,6 +909,31 @@ begin
 //  end;
 end;
 
+procedure TSynCNCSyn.ParameterProc;
+var
+  DefinitionFound:boolean;
+begin
+  FTokenID := tkNormal;
+  case FLine[Run] of
+    '#':
+      begin
+        while (FLine[Run + 1] in ['0'..'9']) and not IsLineEnd(Run) do
+          inc(Run);
+        FTokenID := tkParam;
+        inc(Run, 1);
+        (*
+        // Skip spaces, if any
+        while (FLine[Run + 1] in [' ']) and not IsLineEnd(Run) do inc(Run);
+
+        // If next element equals "=", we have a paramater definition
+        DefinitionFound:=FLine[Run] = '=';
+        *)
+      end
+  else
+    SpaceProc;
+  end;
+end;
+
 constructor TSynCNCSyn.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
@@ -930,6 +965,12 @@ begin
   FReservedAttri.Style := [fsBold];
   FReservedAttri.Foreground := $004A9AFF;
   AddAttribute(FReservedAttri);
+
+  // parameters
+  FParameterAttri := TSynHighlighterAttributes.Create(SYNS_AttrParameter,
+    SYNS_FriendlyAttrParameter);
+  FParameterAttri.Foreground := $00AA00FF;
+  AddAttribute(FParameterAttri);
 
   // numbers
   FNumberAttri := TSynHighlighterAttributes.Create(SYNS_AttrNumber,
@@ -1745,8 +1786,9 @@ begin
       '(': CommentOpenProc;
       #1 .. #9, #11, #12, #14 .. #32: SpaceProc;
       '.','-','0' .. '9': NumberProc;
-      '%','[',']','#','@','^','*', ';': SymbolProc;
+      '%','[',']','@','^','*',';','=': SymbolProc;
 //       'A'..'Z', 'a'..'z', '_': IdentProc;
+      '#': ParameterProc;
       'a': ACodeProc;
       'b': BCodeProc;
       'c': CCodeProc;
@@ -1834,6 +1876,7 @@ begin
     tkText: Result := FStringAttri;
     tkNormal: Result := FNormalAttri;
     tkReserved: Result := FReservedAttri;
+    tkParam: Result := FParameterAttri;
     tkNumber: Result := FNumberAttri;
     tkSpace: Result := FSpaceAttri;
     tkAbstract: Result := FSymbolAttri;
