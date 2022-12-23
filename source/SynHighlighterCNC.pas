@@ -82,57 +82,57 @@ type
     FRange              : TRangeState;
     FTokenID            : TtkTokenKind;
 
-    fLineStr            : string;
+    FLineStr            : string;
     FLine               : PChar;
-    fCasedLineStr       : string;
-    fCasedLine          : PChar;
+    FCasedLineStr       : string;
+    FCasedLine          : PChar;
 
-    Run                 : Integer;
-    fToIdent            : PChar;
+    FRun                : Integer;
+    FToIdent            : PChar;
     FLineLen            : Integer;
     FCaseSensitive      : boolean;
     fTokenPos           : integer;
 
-    FIdentFuncTable: array[0..78] of TIdentFuncTableFunc;
-    FIdentifierAttri: TSynHighlighterAttributes;
-    FKeyAttri: TSynHighlighterAttributes;
+    FIdentFuncTable     : array[0..78] of TIdentFuncTableFunc;
+    FIdentifierAttri    : TSynHighlighterAttributes;
+    FKeyAttri           : TSynHighlighterAttributes;
 
-    FCommentAttri: TSynHighlighterAttributes;
-    FStringAttri: TSynHighlighterAttributes;
-    FReservedAttri: TSynHighlighterAttributes;
-    FNormalAttri: TSynHighlighterAttributes;
-    FEqualAttri: TSynHighlighterAttributes;
-    FParameterAttri: TSynHighlighterAttributes;
-    FNumberAttri: TSynHighlighterAttributes;
-    FSpaceAttri: TSynHighlighterAttributes;
-    FSymbolAttri: TSynHighlighterAttributes;
+    FCommentAttri       : TSynHighlighterAttributes;
+    FStringAttri        : TSynHighlighterAttributes;
+    FReservedAttri      : TSynHighlighterAttributes;
+    FNormalAttri        : TSynHighlighterAttributes;
+    FEqualAttri         : TSynHighlighterAttributes;
+    FParameterAttri     : TSynHighlighterAttributes;
+    FNumberAttri        : TSynHighlighterAttributes;
+    FSpaceAttri         : TSynHighlighterAttributes;
+    FSymbolAttri        : TSynHighlighterAttributes;
 
-    FAcodeAttri: TSynHighlighterAttributes;
-    FBcodeAttri: TSynHighlighterAttributes;
-    FCcodeAttri: TSynHighlighterAttributes;
-    FDcodeAttri: TSynHighlighterAttributes;
-    FEcodeAttri: TSynHighlighterAttributes;
-    FFcodeAttri: TSynHighlighterAttributes;
-    FGcodeAttri: TSynHighlighterAttributes;
-    FHcodeAttri: TSynHighlighterAttributes;
-    FIcodeAttri: TSynHighlighterAttributes;
-    FJcodeAttri: TSynHighlighterAttributes;
-    FKcodeAttri: TSynHighlighterAttributes;
-    FLcodeAttri: TSynHighlighterAttributes;
-    FMcodeAttri: TSynHighlighterAttributes;
-    FNcodeAttri: TSynHighlighterAttributes;
-    FOcodeAttri: TSynHighlighterAttributes;
-    FPcodeAttri: TSynHighlighterAttributes;
-    FQcodeAttri: TSynHighlighterAttributes;
-    FRcodeAttri: TSynHighlighterAttributes;
-    FScodeAttri: TSynHighlighterAttributes;
-    FTcodeAttri: TSynHighlighterAttributes;
-    FUcodeAttri: TSynHighlighterAttributes;
-    FVcodeAttri: TSynHighlighterAttributes;
-    FWcodeAttri: TSynHighlighterAttributes;
-    FXcodeAttri: TSynHighlighterAttributes;
-    FYcodeAttri: TSynHighlighterAttributes;
-    FZcodeAttri: TSynHighlighterAttributes;
+    FAcodeAttri         : TSynHighlighterAttributes;
+    FBcodeAttri         : TSynHighlighterAttributes;
+    FCcodeAttri         : TSynHighlighterAttributes;
+    FDcodeAttri         : TSynHighlighterAttributes;
+    FEcodeAttri         : TSynHighlighterAttributes;
+    FFcodeAttri         : TSynHighlighterAttributes;
+    FGcodeAttri         : TSynHighlighterAttributes;
+    FHcodeAttri         : TSynHighlighterAttributes;
+    FIcodeAttri         : TSynHighlighterAttributes;
+    FJcodeAttri         : TSynHighlighterAttributes;
+    FKcodeAttri         : TSynHighlighterAttributes;
+    FLcodeAttri         : TSynHighlighterAttributes;
+    FMcodeAttri         : TSynHighlighterAttributes;
+    FNcodeAttri         : TSynHighlighterAttributes;
+    FOcodeAttri         : TSynHighlighterAttributes;
+    FPcodeAttri         : TSynHighlighterAttributes;
+    FQcodeAttri         : TSynHighlighterAttributes;
+    FRcodeAttri         : TSynHighlighterAttributes;
+    FScodeAttri         : TSynHighlighterAttributes;
+    FTcodeAttri         : TSynHighlighterAttributes;
+    FUcodeAttri         : TSynHighlighterAttributes;
+    FVcodeAttri         : TSynHighlighterAttributes;
+    FWcodeAttri         : TSynHighlighterAttributes;
+    FXcodeAttri         : TSynHighlighterAttributes;
+    FYcodeAttri         : TSynHighlighterAttributes;
+    FZcodeAttri         : TSynHighlighterAttributes;
 
     procedure NormalProc;
     procedure NullProc;
@@ -388,7 +388,7 @@ begin
     inc(Str);
   end;
   Result := Result mod 79;
-  FLineLen := Str - fToIdent;
+  FLineLen := Str - FToIdent;
 end;
 {$Q+}
 
@@ -760,7 +760,7 @@ function TSynCNCSyn.IdentKind(MayBe: PChar): TtkTokenKind;
 var
   Key: Cardinal;
 begin
-  fToIdent := MayBe;
+  FToIdent := MayBe;
   Key := HashKey(MayBe);
   if Key <= High(fIdentFuncTable) then
     Result := fIdentFuncTable[Key](KeyIndices[Key])
@@ -770,42 +770,42 @@ end;
 
 procedure TSynCNCSyn.SpaceProc;
 begin
-  inc(Run);
+  inc(FRun);
   FTokenID := tkSpace;
-  while (FLine[Run] <= #32) and not IsLineEnd(Run) do
-    inc(Run);
+  while (FLine[FRun] <= #32) and not IsLineEnd(FRun) do
+    inc(FRun);
 end;
 
 procedure TSynCNCSyn.NullProc;
 begin
   FTokenID := tkNull;
-  inc(Run);
+  inc(FRun);
 end;
 
 procedure TSynCNCSyn.CRProc;
 begin
   FTokenID := tkSpace;
-  inc(Run);
-  if FLine[Run] = #10 then
-    inc(Run);
+  inc(FRun);
+  if FLine[FRun] = #10 then
+    inc(FRun);
 end;
 
 procedure TSynCNCSyn.LFProc;
 begin
   FTokenID := tkSpace;
-  inc(Run);
+  inc(FRun);
 end;
 
 procedure TSynCNCSyn.CommentOpenProc;
 begin
-  inc(Run);
+  inc(FRun);
   FRange := rsComment;
   FTokenID := tkComment;
 end;
 
 procedure TSynCNCSyn.CommentProc;
 begin
-  case FLine[Run] of
+  case FLine[FRun] of
     #0: NullProc;
     #10: LFProc;
     #13: CRProc;
@@ -813,15 +813,15 @@ begin
     begin
       FTokenID := tkComment;
       repeat
-        if (FLine[Run] = ')') then
+        if (FLine[FRun] = ')') then
         begin
-          inc(Run, 1);
+          inc(FRun, 1);
           FRange := rsNormal;
           Break;
         end;
-        if not IsLineEnd(Run) then
-          inc(Run);
-      until IsLineEnd(Run);
+        if not IsLineEnd(FRun) then
+          inc(FRun);
+      until IsLineEnd(FRun);
     end;
   end;
 end;
@@ -829,23 +829,23 @@ end;
 procedure TSynCNCSyn.SymbolProc;
 begin
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     '%','[',']','@','^','*':
       begin
         FTokenID := tkAbstract;
-        inc(Run, 1);
+        inc(FRun, 1);
       end;
      ';':
      begin
        FTokenID := tkComment;
        repeat
-          inc(Run, 1);
-       until IsLineEnd(Run);
+          inc(FRun, 1);
+       until IsLineEnd(FRun);
      end;
      '=':
      begin
        FTokenID := tkEqual;
-       inc(Run, 1);
+       inc(FRun, 1);
      end
   else
     SpaceProc;
@@ -855,9 +855,9 @@ end;
 procedure TSynCNCSyn.NumberProc;
   function ExpectDigit: Boolean;
   begin
-    Result := CharInSet(FLine[Run], ['0' .. '9']);
-    while CharInSet(FLine[Run], ['0' .. '9']) do
-      inc(Run);
+    Result := CharInSet(FLine[FRun], ['0' .. '9']);
+    while CharInSet(FLine[FRun], ['0' .. '9']) do
+      inc(FRun);
   end;
 var
   DotFound:boolean;
@@ -865,49 +865,49 @@ var
 begin
   FTokenID := tkNumber;
 
-  if FLine[Run] = '-' then
-    inc(Run);
+  if FLine[FRun] = '-' then
+    inc(FRun);
 
   // check for dot
-  DotFound:=(FLine[Run] = '.');
+  DotFound:=(FLine[FRun] = '.');
   if DotFound then
-    inc(Run);
+    inc(FRun);
 
   // at least any digit must appear here
   if not ExpectDigit then
   begin
     FTokenID := tkNormal;
-    while (FLine[Run] <> #32) and not IsLineEnd(Run) do
-      inc(Run);
+    while (FLine[FRun] <> #32) and not IsLineEnd(FRun) do
+      inc(FRun);
     Exit;
   end;
 
   // check again for dot
   if (NOT DotFound) then
   begin
-    DotFound:=(FLine[Run] = '.');
+    DotFound:=(FLine[FRun] = '.');
     if DotFound then
     begin
-      inc(Run);
+      inc(FRun);
       ExpectDigit;
     end;
   end;
 
   // check for an exponent
-//  if CharInSet(FLine[Run], ['e', 'E']) then
+//  if CharInSet(FLine[FRun], ['e', 'E']) then
 //  begin
-//    inc(Run);
+//    inc(FRun);
 //
 //    // allow +/- here
-//    if CharInSet(FLine[Run], ['+', '-']) then
-//      inc(Run);
+//    if CharInSet(FLine[FRun], ['+', '-']) then
+//      inc(FRun);
 //
 //    // at least any digit must appear here
 //    if not ExpectDigit then
 //    begin
 //      FTokenID := tkNormal;
-//      while (FLine[Run] <> #32) and not IsLineEnd(Run) do
-//        inc(Run);
+//      while (FLine[FRun] <> #32) and not IsLineEnd(FRun) do
+//        inc(FRun);
 //      Exit;
 //    end;
 //  end;
@@ -915,39 +915,39 @@ end;
 
 procedure TSynCNCSyn.ParameterProc;
 begin
-  case FLine[Run] of
+  case FLine[FRun] of
     #0: NullProc;
     #10: LFProc;
     #13: CRProc;
   else
     begin
       FTokenID := tkNormal;
-      case FLine[Run] of
+      case FLine[FRun] of
         '#':
           begin
-            if FLine[Run + 1]='<' then
+            if FLine[FRun + 1]='<' then
             begin
-              if not IsLineEnd(Run) then
-                inc(Run);
+              if not IsLineEnd(FRun) then
+                inc(FRun);
               // We have a named param: get it !!
               repeat
-                if (FLine[Run] = '>') then
+                if (FLine[FRun] = '>') then
                 begin
                   FTokenID := tkParam;
-                  inc(Run, 1);
+                  inc(FRun, 1);
                   Break;
                 end;
-                if not IsLineEnd(Run) then
-                  inc(Run);
-              until IsLineEnd(Run);
+                if not IsLineEnd(FRun) then
+                  inc(FRun);
+              until IsLineEnd(FRun);
             end
             else
             begin
               // Normal numbered param
-              while (FLine[Run + 1] in ['0'..'9']) and not IsLineEnd(Run) do
-                inc(Run);
+              while (FLine[FRun + 1] in ['0'..'9']) and not IsLineEnd(FRun) do
+                inc(FRun);
               FTokenID := tkParam;
-              inc(Run, 1);
+              inc(FRun, 1);
             end;
           end
       end;
@@ -1168,57 +1168,57 @@ end;
 
 procedure TSynCNCSyn.NormalProc;
 begin
-  inc(Run);
+  inc(FRun);
   FTokenID := tkNormal;
 end;
 
 procedure TSynCNCSyn.IdentProc;
 begin
-  FTokenID := IdentKind(FLine + Run);
-  inc(Run, FLineLen);
-  while IsIdentChar(FLine[Run]) do
-    Inc(Run);
+  FTokenID := IdentKind(FLine + FRun);
+  inc(FRun, FLineLen);
+  while IsIdentChar(FLine[FRun]) do
+    Inc(FRun);
 end;
 
 procedure TSynCNCSyn.ACodeProc;
 begin  //'abs', 'acos', 'and', 'ar', 'asin', 'atan'
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     'a':
       begin
-      if ((FLine[Run+1] = 'b') and (FLine[Run+2] = 's'))then //abs
+      if ((FLine[FRun+1] = 'b') and (FLine[FRun+2] = 's'))then //abs
       begin
         FTokenID := tkFunction;
-        inc(Run, 3);
+        inc(FRun, 3);
       end else
-      if ((FLine[Run+1] = 'c') and (FLine[Run+2] = 'o') and (FLine[Run+3] = 's'))then //acos
+      if ((FLine[FRun+1] = 'c') and (FLine[FRun+2] = 'o') and (FLine[FRun+3] = 's'))then //acos
       begin
         FTokenID := tkFunction;
-        inc(Run, 4);
+        inc(FRun, 4);
       end else
-      if ((FLine[Run+1] = 'n') and (FLine[Run+2] = 'd'))then  //and
+      if ((FLine[FRun+1] = 'n') and (FLine[FRun+2] = 'd'))then  //and
       begin
         FTokenID := tkFunction;
-        inc(Run, 3);
+        inc(FRun, 3);
       end else
-      if ((FLine[Run+1] = 'r'))then  //ar
+      if ((FLine[FRun+1] = 'r'))then  //ar
       begin
         FTokenID := tkFunction;
-        inc(Run, 2);
+        inc(FRun, 2);
       end else
-      if ((FLine[Run+1] = 's') and (FLine[Run+2] = 'i') and (FLine[Run+3] = 'n'))then  //asin
+      if ((FLine[FRun+1] = 's') and (FLine[FRun+2] = 'i') and (FLine[FRun+3] = 'n'))then  //asin
       begin
         FTokenID := tkFunction;
-        inc(Run, 4);
+        inc(FRun, 4);
       end else
-      if ((FLine[Run+1] = 't') and (FLine[Run+2] = 'a') and (FLine[Run+3] = 'n'))then  //atan
+      if ((FLine[FRun+1] = 't') and (FLine[FRun+2] = 'a') and (FLine[FRun+3] = 'n'))then  //atan
       begin
         FTokenID := tkFunction;
-        inc(Run, 4);
+        inc(FRun, 4);
       end else
       begin
         FTokenID := tkAcode;
-        inc(Run, 1);
+        inc(FRun, 1);
       end;
       end
   else
@@ -1229,22 +1229,22 @@ end;
 procedure TSynCNCSyn.BCodeProc;
 begin //'bcd', 'bin',
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     'b':
       begin
-      if ((FLine[Run+1] = 'c') and (FLine[Run+2] = 'd'))then //bcd
+      if ((FLine[FRun+1] = 'c') and (FLine[FRun+2] = 'd'))then //bcd
       begin
         FTokenID := tkFunction;
-        inc(Run, 3);
+        inc(FRun, 3);
       end else
-      if ((FLine[Run+1] = 'i') and (FLine[Run+2] = 'n'))then //bin
+      if ((FLine[FRun+1] = 'i') and (FLine[FRun+2] = 'n'))then //bin
       begin
         FTokenID := tkFunction;
-        inc(Run, 3);
+        inc(FRun, 3);
       end else
       begin
         FTokenID := tkBcode;
-        inc(Run, 1);
+        inc(FRun, 1);
       end;
       end
   else
@@ -1255,17 +1255,17 @@ end;
 procedure TSynCNCSyn.CCodeProc;
 begin //'cos'
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     'c':
       begin
-      if ((FLine[Run+1] = 'o') and (FLine[Run+2] = 's'))then //cos
+      if ((FLine[FRun+1] = 'o') and (FLine[FRun+2] = 's'))then //cos
       begin
         FTokenID := tkFunction;
-        inc(Run, 3);
+        inc(FRun, 3);
       end else
       begin
         FTokenID := tkCcode;
-        inc(Run, 1);
+        inc(FRun, 1);
       end;
       end
   else
@@ -1276,17 +1276,17 @@ end;
 procedure TSynCNCSyn.DCodeProc;
 begin //'do'
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     'd':
       begin
-      if ((FLine[Run+1] = 'o'))then //do
+      if ((FLine[FRun+1] = 'o'))then //do
       begin
         FTokenID := tkFunction;
-        inc(Run, 2);
+        inc(FRun, 2);
       end else
       begin
         FTokenID := tkDcode;
-        inc(Run, 1);
+        inc(FRun, 1);
       end;
       end
   else
@@ -1297,42 +1297,42 @@ end;
 procedure TSynCNCSyn.ECodeProc;
 begin // 'else', 'end', 'endif', 'endw', 'eq', 'exp',
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     'e':
       begin
-        if ((FLine[Run+1] = 'l') and (FLine[Run+2] = 's') and (FLine[Run+3] = 'e'))then //else
+        if ((FLine[FRun+1] = 'l') and (FLine[FRun+2] = 's') and (FLine[FRun+3] = 'e'))then //else
         begin
           FTokenID := tkFunction;
-          inc(Run, 4);
+          inc(FRun, 4);
         end else
-        if ((FLine[Run+1] = 'n') and (FLine[Run+2] = 'd') and (FLine[Run+3] = 'i') and (FLine[Run+4] = 'f'))then //endif
+        if ((FLine[FRun+1] = 'n') and (FLine[FRun+2] = 'd') and (FLine[FRun+3] = 'i') and (FLine[FRun+4] = 'f'))then //endif
         begin
           FTokenID := tkFunction;
-          inc(Run, 5);
+          inc(FRun, 5);
         end else
-        if ((FLine[Run+1] = 'n') and (FLine[Run+2] = 'd') and (FLine[Run+3] = 'w'))then //endw
+        if ((FLine[FRun+1] = 'n') and (FLine[FRun+2] = 'd') and (FLine[FRun+3] = 'w'))then //endw
         begin
           FTokenID := tkFunction;
-          inc(Run, 4);
+          inc(FRun, 4);
         end else
-        if ((FLine[Run+1] = 'n') and (FLine[Run+2] = 'd'))then //end
+        if ((FLine[FRun+1] = 'n') and (FLine[FRun+2] = 'd'))then //end
         begin
           FTokenID := tkFunction;
-          inc(Run, 3);
+          inc(FRun, 3);
         end else
-        if ((FLine[Run+1] = 'q'))then //eq
+        if ((FLine[FRun+1] = 'q'))then //eq
         begin
           FTokenID := tkFunction;
-          inc(Run, 2);
+          inc(FRun, 2);
         end else
-        if ((FLine[Run+1] = 'x') and (FLine[Run+2] = 'p'))then //exp
+        if ((FLine[FRun+1] = 'x') and (FLine[FRun+2] = 'p'))then //exp
         begin
           FTokenID := tkFunction;
-          inc(Run, 3);
+          inc(FRun, 3);
         end else
         begin
           FTokenID := tkEcode;
-          inc(Run, 1);
+          inc(FRun, 1);
         end;
       end
   else
@@ -1343,28 +1343,28 @@ end;
 procedure TSynCNCSyn.FCodeProc;
 begin  //'false', 'fix', 'fup',
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     'f':
       begin
-        if ((FLine[Run+1] = 'a') and (FLine[Run+2] = 'l') and (FLine[Run+3] = 's')
-          and (FLine[Run+4] = 'e')) then //false
+        if ((FLine[FRun+1] = 'a') and (FLine[FRun+2] = 'l') and (FLine[FRun+3] = 's')
+          and (FLine[FRun+4] = 'e')) then //false
         begin
           FTokenID := tkFunction;
-          inc(Run, 5);
+          inc(FRun, 5);
         end else
-        if ((FLine[Run+1] = 'i') and (FLine[Run+2] = 'x')) then //fix
+        if ((FLine[FRun+1] = 'i') and (FLine[FRun+2] = 'x')) then //fix
         begin
           FTokenID := tkFunction;
-          inc(Run, 3);
+          inc(FRun, 3);
         end else
-        if ((FLine[Run+1] = 'u') and (FLine[Run+2] = 'p')) then //fup
+        if ((FLine[FRun+1] = 'u') and (FLine[FRun+2] = 'p')) then //fup
         begin
           FTokenID := tkFunction;
-          inc(Run, 3);
+          inc(FRun, 3);
         end else
         begin
           FTokenID := tkFcode;
-          inc(Run, 1);
+          inc(FRun, 1);
         end;
       end
   else
@@ -1377,29 +1377,29 @@ var
   i: Integer;
 begin   //'ge', 'goto', 'gt',
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     'g':
       begin
-        if ((FLine[Run+1] = 'e')) then //ge
+        if ((FLine[FRun+1] = 'e')) then //ge
         begin
           FTokenID := tkFunction;
-            inc(Run, 2);
+            inc(FRun, 2);
         end else
-        if ((FLine[Run+1] = 'o') and (FLine[Run+2] = 't') and (FLine[Run+3] = 'o')) then //goto
+        if ((FLine[FRun+1] = 'o') and (FLine[FRun+2] = 't') and (FLine[FRun+3] = 'o')) then //goto
         begin
           FTokenID := tkFunction;
-            inc(Run, 4);
+            inc(FRun, 4);
         end else
-        if ((FLine[Run+1] = 't')) then //gt
+        if ((FLine[FRun+1] = 't')) then //gt
         begin
           FTokenID := tkFunction;
-            inc(Run, 2);
+            inc(FRun, 2);
         end else
         begin
-          while (FLine[Run + 1] in ['.','0'..'9']) and not IsLineEnd(Run) do
-          inc(Run);
+          while (FLine[FRun + 1] in ['.','0'..'9']) and not IsLineEnd(FRun) do
+          inc(FRun);
           FTokenID := tkGcode;
-          inc(Run, 1);
+          inc(FRun, 1);
         end;
       end
   else
@@ -1410,11 +1410,11 @@ end;
 procedure TSynCNCSyn.HCodeProc;
 begin
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     'h':
       begin
         FTokenID := tkHcode;
-        inc(Run, 1);
+        inc(FRun, 1);
       end
   else
     SpaceProc;
@@ -1424,22 +1424,22 @@ end;
 procedure TSynCNCSyn.ICodeProc;
 begin  //'if', 'int'
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     'i':
       begin
-        if ((FLine[Run+1] = 'f')) then //if
+        if ((FLine[FRun+1] = 'f')) then //if
         begin
           FTokenID := tkFunction;
-            inc(Run, 2);
+            inc(FRun, 2);
         end else
-        if ((FLine[Run+1] = 'n') and (FLine[Run+2] = 't')) then //int
+        if ((FLine[FRun+1] = 'n') and (FLine[FRun+2] = 't')) then //int
         begin
           FTokenID := tkFunction;
-            inc(Run, 3);
+            inc(FRun, 3);
         end else
         begin
           FTokenID := tkIcode;
-          inc(Run, 1);
+          inc(FRun, 1);
         end;
       end
   else
@@ -1450,11 +1450,11 @@ end;
 procedure TSynCNCSyn.JCodeProc;
 begin
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     'j':
       begin
         FTokenID := tkJcode;
-        inc(Run, 1);
+        inc(FRun, 1);
       end
   else
     SpaceProc;
@@ -1464,11 +1464,11 @@ end;
 procedure TSynCNCSyn.KCodeProc;
 begin
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     'k':
       begin
         FTokenID := tkKcode;
-        inc(Run, 1);
+        inc(FRun, 1);
       end
   else
     SpaceProc;
@@ -1478,27 +1478,27 @@ end;
 procedure TSynCNCSyn.LCodeProc;
 begin  //'le', 'ln', 'lt',
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     'l':
       begin
-        if ((FLine[Run+1] = 'e')) then //le
+        if ((FLine[FRun+1] = 'e')) then //le
         begin
           FTokenID := tkFunction;
-            inc(Run, 2);
+            inc(FRun, 2);
         end else
-        if ((FLine[Run+1] = 'n')) then //ln
+        if ((FLine[FRun+1] = 'n')) then //ln
         begin
           FTokenID := tkFunction;
-            inc(Run, 2);
+            inc(FRun, 2);
         end else
-        if ((FLine[Run+1] = 't')) then //lt
+        if ((FLine[FRun+1] = 't')) then //lt
         begin
           FTokenID := tkFunction;
-            inc(Run, 2);
+            inc(FRun, 2);
         end else
         begin
           FTokenID := tkLcode;
-          inc(Run, 1);
+          inc(FRun, 1);
         end;
       end
   else
@@ -1509,11 +1509,11 @@ end;
 procedure TSynCNCSyn.MCodeProc;
 begin
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     'm':
       begin
         FTokenID := tkMcode;
-        inc(Run, 1);
+        inc(FRun, 1);
       end
   else
     SpaceProc;
@@ -1523,29 +1523,29 @@ end;
 procedure TSynCNCSyn.NCodeProc;
 begin  //'ne', 'next', 'not'
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     'n':
       begin
-        if ((FLine[Run+1] = 'e') and (FLine[Run+2] = 'x') and (FLine[Run+3] = 't')) then //next
+        if ((FLine[FRun+1] = 'e') and (FLine[FRun+2] = 'x') and (FLine[FRun+3] = 't')) then //next
         begin
           FTokenID := tkFunction;
-            inc(Run, 4);
+            inc(FRun, 4);
         end else
-        if ((FLine[Run+1] = 'o') and (FLine[Run+2] = 't')) then //not
+        if ((FLine[FRun+1] = 'o') and (FLine[FRun+2] = 't')) then //not
         begin
           FTokenID := tkFunction;
-            inc(Run, 3);
+            inc(FRun, 3);
         end else
-        if ((FLine[Run+1] = 'e')) then //ne
+        if ((FLine[FRun+1] = 'e')) then //ne
         begin
           FTokenID := tkFunction;
-            inc(Run, 2);
+            inc(FRun, 2);
         end else
         begin
-          while (FLine[Run + 1] in ['0'..'9']) and not IsLineEnd(Run) do
-          inc(Run);
+          while (FLine[FRun + 1] in ['0'..'9']) and not IsLineEnd(FRun) do
+          inc(FRun);
           FTokenID := tkNcode;
-          inc(Run, 1);
+          inc(FRun, 1);
         end;
       end
   else
@@ -1556,17 +1556,17 @@ end;
 procedure TSynCNCSyn.OCodeProc;
 begin//'or'
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     'o':
       begin
-        if ((FLine[Run+1] = 'r')) then //or
+        if ((FLine[FRun+1] = 'r')) then //or
         begin
           FTokenID := tkFunction;
-            inc(Run, 2);
+            inc(FRun, 2);
         end else
         begin
           FTokenID := tkOcode;
-          inc(Run, 1);
+          inc(FRun, 1);
         end;
       end
   else
@@ -1578,17 +1578,17 @@ end;
 procedure TSynCNCSyn.PCodeProc;
 begin //'pi'
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     'p':
       begin
-        if ((FLine[Run+1] = 'i')) then //pi
+        if ((FLine[FRun+1] = 'i')) then //pi
         begin
           FTokenID := tkFunction;
-            inc(Run, 2);
+            inc(FRun, 2);
         end else
         begin
           FTokenID := tkPcode;
-          inc(Run, 1);
+          inc(FRun, 1);
         end;
       end
   else
@@ -1599,11 +1599,11 @@ end;
 procedure TSynCNCSyn.QCodeProc;
 begin
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     'q':
       begin
         FTokenID := tkQcode;
-        inc(Run, 1);
+        inc(FRun, 1);
       end
   else
     SpaceProc;
@@ -1613,24 +1613,24 @@ end;
 procedure TSynCNCSyn.RCodeProc;
 begin   //'repeart', 'round'
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     'r':
       begin
-        if ((FLine[Run+1] = 'e') and (FLine[Run+2] = 'p') and (FLine[Run+3] = 'e')
-          and (FLine[Run+4] = 'a') and (FLine[Run+5] = 'r') and (FLine[Run+6] = 't')) then //repeart
+        if ((FLine[FRun+1] = 'e') and (FLine[FRun+2] = 'p') and (FLine[FRun+3] = 'e')
+          and (FLine[FRun+4] = 'a') and (FLine[FRun+5] = 'r') and (FLine[FRun+6] = 't')) then //repeart
           begin
             FTokenID := tkFunction;
-              inc(Run, 7);
+              inc(FRun, 7);
           end else
-        if ((FLine[Run+1] = 'o') and (FLine[Run+2] = 'u') and (FLine[Run+3] = 'n')
-          and (FLine[Run+4] = 'd')) then //round
+        if ((FLine[FRun+1] = 'o') and (FLine[FRun+2] = 'u') and (FLine[FRun+3] = 'n')
+          and (FLine[FRun+4] = 'd')) then //round
           begin
             FTokenID := tkFunction;
-              inc(Run, 5);
+              inc(FRun, 5);
           end else
         begin
           FTokenID := tkRcode;
-          inc(Run, 1);
+          inc(FRun, 1);
         end;
       end
   else
@@ -1641,27 +1641,27 @@ end;
 procedure TSynCNCSyn.SCodeProc;
 begin  //'sign', 'sin', 'sqrt'
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     's':
       begin
-        if ((FLine[Run+1] = 'i') and (FLine[Run+2] = 'g') and (FLine[Run+3] = 'n')) then //sign
+        if ((FLine[FRun+1] = 'i') and (FLine[FRun+2] = 'g') and (FLine[FRun+3] = 'n')) then //sign
         begin
           FTokenID := tkFunction;
-            inc(Run, 4);
+            inc(FRun, 4);
         end else
-        if ((FLine[Run+1] = 'i') and (FLine[Run+2] = 'n')) then //sin
+        if ((FLine[FRun+1] = 'i') and (FLine[FRun+2] = 'n')) then //sin
         begin
           FTokenID := tkFunction;
-            inc(Run, 3);
+            inc(FRun, 3);
         end else
-        if ((FLine[Run+1] = 'q') and (FLine[Run+2] = 'r') and (FLine[Run+3] = 't')) then //sqrt
+        if ((FLine[FRun+1] = 'q') and (FLine[FRun+2] = 'r') and (FLine[FRun+3] = 't')) then //sqrt
         begin
           FTokenID := tkFunction;
-            inc(Run, 4);
+            inc(FRun, 4);
         end else
         begin
           FTokenID := tkScode;
-          inc(Run, 1);
+          inc(FRun, 1);
         end;
       end
   else
@@ -1672,27 +1672,27 @@ end;
 procedure TSynCNCSyn.TCodeProc;
 begin   //'tan', 'then', 'true'
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     't':
       begin
-        if ((FLine[Run+1] = 'a') and (FLine[Run+2] = 'n')) then //tan
+        if ((FLine[FRun+1] = 'a') and (FLine[FRun+2] = 'n')) then //tan
         begin
           FTokenID := tkFunction;
-            inc(Run, 3);
+            inc(FRun, 3);
         end else
-        if ((FLine[Run+1] = 'h') and (FLine[Run+2] = 'e') and (FLine[Run+3] = 'n')) then //then
+        if ((FLine[FRun+1] = 'h') and (FLine[FRun+2] = 'e') and (FLine[FRun+3] = 'n')) then //then
         begin
           FTokenID := tkFunction;
-            inc(Run, 4);
+            inc(FRun, 4);
         end else
-        if ((FLine[Run+1] = 'r') and (FLine[Run+2] = 'u') and (FLine[Run+3] = 'e')) then //true
+        if ((FLine[FRun+1] = 'r') and (FLine[FRun+2] = 'u') and (FLine[FRun+3] = 'e')) then //true
         begin
           FTokenID := tkFunction;
-            inc(Run, 4);
+            inc(FRun, 4);
         end else
         begin
           FTokenID := tkTcode;
-          inc(Run, 1);
+          inc(FRun, 1);
         end;
       end
   else
@@ -1704,11 +1704,11 @@ end;
 procedure TSynCNCSyn.UCodeProc;
 begin
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     'u':
       begin
         FTokenID := tkUcode;
-        inc(Run, 1);
+        inc(FRun, 1);
       end
   else
     SpaceProc;
@@ -1718,11 +1718,11 @@ end;
 procedure TSynCNCSyn.VCodeProc;
 begin
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     'v':
       begin
         FTokenID := tkVcode;
-        inc(Run, 1);
+        inc(FRun, 1);
       end
   else
     SpaceProc;
@@ -1732,18 +1732,18 @@ end;
 procedure TSynCNCSyn.WCodeProc;
 begin  // 'while'
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     'w':
       begin
-        if ((FLine[Run+1] = 'h') and (FLine[Run+2] = 'i') and (FLine[Run+3] = 'l')
-          and (FLine[Run+4] = 'e')) then //while
+        if ((FLine[FRun+1] = 'h') and (FLine[FRun+2] = 'i') and (FLine[FRun+3] = 'l')
+          and (FLine[FRun+4] = 'e')) then //while
         begin
           FTokenID := tkFunction;
-            inc(Run, 5);
+            inc(FRun, 5);
         end else
         begin
           FTokenID := tkWcode;
-          inc(Run, 1);
+          inc(FRun, 1);
         end;
       end
   else
@@ -1754,17 +1754,17 @@ end;
 procedure TSynCNCSyn.XCodeProc;
 begin //'xor'
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     'x':
       begin
-      if ((FLine[Run+1] = 'o') and (FLine[Run+2] = 'r')) then //xor
+      if ((FLine[FRun+1] = 'o') and (FLine[FRun+2] = 'r')) then //xor
         begin
           FTokenID := tkFunction;
-          inc(Run, 3);
+          inc(FRun, 3);
         end else
         begin
           FTokenID := tkXcode;
-          inc(Run, 1);
+          inc(FRun, 1);
         end;
       end
   else
@@ -1775,11 +1775,11 @@ end;
 procedure TSynCNCSyn.YCodeProc;
 begin
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     'y':
       begin
         FTokenID := tkYcode;
-        inc(Run, 1);
+        inc(FRun, 1);
       end
   else
     SpaceProc;
@@ -1789,11 +1789,11 @@ end;
 procedure TSynCNCSyn.ZCodeProc;
 begin
   FTokenID := tkNormal;
-  case FLine[Run] of
+  case FLine[FRun] of
     'z':
       begin
         FTokenID := tkZcode;
-        inc(Run, 1);
+        inc(FRun, 1);
       end
   else
     SpaceProc;
@@ -1802,11 +1802,11 @@ end;
 
 procedure TSynCNCSyn.Next;
 begin
-  fTokenPos := Run;
+  fTokenPos := FRun;
   case FRange of
     rsComment: CommentProc;
   else
-    case FLine[Run] of
+    case FLine[FRun] of
       #0: NullProc;
       #10: LFProc;
       #13: CRProc;
@@ -1863,7 +1863,7 @@ end;
 
 function TSynCNCSyn.GetEol: Boolean;
 begin
-  Result := Run = FLineLen + 1;
+  Result := FRun = FLineLen + 1;
 end;
 
 function TSynCNCSyn.GetKeywordIdentifiers: TStringList;
@@ -1890,9 +1890,9 @@ end;
 procedure TSynCNCSyn.GetTokenEx(out TokenStart: PChar;
   out TokenLength: integer);
 begin
-  TokenLength:=Run-fTokenPos;
+  TokenLength:=FRun-fTokenPos;
   //TokenStart:=FLine + fTokenPos;
-  TokenStart:=fCasedLine + fTokenPos;
+  TokenStart:=FCasedLine + fTokenPos;
 end;
 
 
@@ -2027,12 +2027,12 @@ end;
 procedure TSynCNCSyn.SetLine(const NewValue: string; LineNumber:Integer);
 begin
   inherited;
-  fLineStr       := LowerCase(NewValue);
-  fLineLen       := length(fLineStr);
-  fLine          := PChar(fLineStr);
-  Run            := 0;
-  fCasedLineStr  := NewValue;
-  fCasedLine     := PChar(FCasedLineStr);
+  FLineStr       := LowerCase(NewValue);
+  fLineLen       := length(FLineStr);
+  fLine          := PChar(FLineStr);
+  FRun            := 0;
+  FCasedLineStr  := NewValue;
+  FCasedLine     := PChar(FCasedLineStr);
   Next;
 end; { SetLine }
 
@@ -2079,10 +2079,10 @@ function TSynCNCSyn.GetToken: string;
 var
   Len: LongInt;
 begin
-  Len := Run - fTokenPos;
+  Len := FRun - fTokenPos;
   SetLength(Result,Len);
   if Len>0 then
-    System.Move(fCasedLine[fTokenPos],Result[1],Len);
+    System.Move(FCasedLine[fTokenPos],Result[1],Len);
 end;
 
 initialization

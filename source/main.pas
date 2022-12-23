@@ -7,8 +7,8 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs,
   StdCtrls, EditBtn, ExtCtrls, Types, fgl,
-  SynEdit, SynEditHighlighter, SynHighlighterCNC,SynEditTypes,
-  BGRAPath, BGRABitmapTypes, BGRABitmap, BGRACanvas2D, BGRAVirtualScreen, BGRALayers, SynEditMarkupSpecialLine;
+  SynEdit, SynEditHighlighter, SynHighlighterCNC,SynEditTypes, SynEditMarkup, SynEditMarkupBracket, SynEditMarkupBracketCNC,
+  BGRAPath, BGRABitmapTypes, BGRABitmap, BGRACanvas2D, BGRAVirtualScreen, BGRALayers;
 
 type
   TtkGCodeKind =
@@ -271,9 +271,25 @@ begin
 end;
 
 procedure TGCodeViewer.FormCreate(Sender: TObject);
+var
+  tmp:TSynEditMarkupBracket;
+  new:TSynEditMarkupBracketCNC;
+  mc:TSynEditMarkup;
 begin
   CNC := TSynCNCSyn.Create(CommandOutputScreen);
   CommandOutputScreen.Highlighter := CNC;
+
+  // Remove standard bracket markup
+  mc:=TSynEditMarkupBracket(CommandOutputScreen.MarkupByClass[TSynEditMarkupBracket]);
+  CommandOutputScreen.MarkupManager.RemoveMarkUp(mc);
+  mc.Free;
+
+  // Add CNC bracket markup
+  new:=TSynEditMarkupBracketCNC.Create(CommandOutputScreen);
+  CommandOutputScreen.MarkupManager.AddMarkUp(new);
+  CommandOutputScreen.Options:=CommandOutputScreen.Options+[eoBracketHighlight];
+  TSynEditMarkupBracket(CommandOutputScreen.MarkupByClass[TSynEditMarkupBracketCNC]).MarkupInfo.Background:=clBlue;
+  TSynEditMarkupBracket(CommandOutputScreen.MarkupByClass[TSynEditMarkupBracketCNC]).MarkupInfo.BackPriority:=99999+1;
 
   newp_boundsF:=RectF(0,0,0,0);
   newp:=TBGRAPath.Create;
