@@ -604,6 +604,9 @@ begin
                     if tTK=tkUcode then tTK:=tkAcode;
                     if tTK=tkVcode then tTK:=tkBcode;
                     if tTK=tkWcode then tTK:=tkCcode;
+
+                    GCData[tTK].ValueSet:=True;
+
                     if ParamData then
                     begin
                       // We got a param !!
@@ -612,7 +615,8 @@ begin
                       try
                         GCData[tTK].NewValue:=ParameterList.KeyData[Param];
                        except
-                         raise EArgumentException.Create('Got parameter ('+Param+'), but no value defined !');
+                         GCData[tTK].NewValue:=0;
+                         //raise EArgumentException.Create('Got parameter ('+Param+'), but no value defined !');
                        end;
                      end
                     else

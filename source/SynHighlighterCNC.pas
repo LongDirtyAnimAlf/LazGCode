@@ -912,27 +912,43 @@ begin
 end;
 
 procedure TSynCNCSyn.ParameterProc;
-var
-  DefinitionFound:boolean;
 begin
-  FTokenID := tkNormal;
   case FLine[Run] of
-    '#':
-      begin
-        while (FLine[Run + 1] in ['0'..'9']) and not IsLineEnd(Run) do
-          inc(Run);
-        FTokenID := tkParam;
-        inc(Run, 1);
-        (*
-        // Skip spaces, if any
-        while (FLine[Run + 1] in [' ']) and not IsLineEnd(Run) do inc(Run);
-
-        // If next element equals "=", we have a paramater definition
-        DefinitionFound:=FLine[Run] = '=';
-        *)
-      end
+    #0: NullProc;
+    #10: LFProc;
+    #13: CRProc;
   else
-    SpaceProc;
+    begin
+      FTokenID := tkNormal;
+      case FLine[Run] of
+        '#':
+          begin
+            if FLine[Run + 1]='<' then
+            begin
+              if not IsLineEnd(Run) then
+                inc(Run);
+              // We have a named param: get it !!
+              repeat
+                if (FLine[Run] = '>') then
+                begin
+                  FTokenID := tkParam;
+                  inc(Run, 1);
+                  Break;
+                end;
+                if not IsLineEnd(Run) then
+                  inc(Run);
+              until IsLineEnd(Run);
+            end
+            else
+            begin
+              while (FLine[Run + 1] in ['0'..'9']) and not IsLineEnd(Run) do
+                inc(Run);
+              FTokenID := tkParam;
+              inc(Run, 1);
+            end;
+          end
+      end;
+    end;
   end;
 end;
 
