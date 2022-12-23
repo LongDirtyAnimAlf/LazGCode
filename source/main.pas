@@ -276,6 +276,8 @@ var
   new:TSynEditMarkupBracketCNC;
   mc:TSynEditMarkup;
 begin
+  //CommandOutputScreen.InsertMode:=False;
+
   CNC := TSynCNCSyn.Create(CommandOutputScreen);
   CommandOutputScreen.Highlighter := CNC;
 

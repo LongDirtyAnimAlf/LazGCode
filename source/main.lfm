@@ -92,7 +92,6 @@ object GCodeViewer: TGCodeViewer
     Gutter.MouseActions = <>
     RightGutter.Width = 0
     RightGutter.MouseActions = <>
-    InsertMode = False
     Keystrokes = <    
       item
         Command = ecUp
