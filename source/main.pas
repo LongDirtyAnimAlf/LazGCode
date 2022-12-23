@@ -403,9 +403,11 @@ var
   TokenList             : TTokenList;
   ParameterList         : TParameters;
 
-  linenumber,i,j,k      : integer;
-  s,t                   : string;
-  Param                 : string;
+  j                     : integer;
+  linenumber,lineindex  : integer;
+  tokenindex            : integer;
+  s,tokentext           : string;
+  ParamName             : string;
   SHA                   : TSynHighlighterAttributes;
   tTK                   : TtkTokenKind;
   GCode                 : TtkGCodeKind;
@@ -487,47 +489,47 @@ begin
     for TokenEnumerator in TtkTokenKind do GCData[TokenEnumerator].ValueSet:=False;
     GCodeList.Clear;
     SHA:=nil;
-    i:=0;
-    t:='';
-    k:=1;
+    tokenindex:=0;
+    tokentext:='';
+    lineindex:=1;
     repeat
       if SHA<>nil then
       begin
-        TokenEnumerator:=TtkTokenKind(i);
+        TokenEnumerator:=TtkTokenKind(tokenindex);
         case TokenEnumerator of
           tkGcode:
             begin
-              GCode:=GetGCodeFromString(t);
+              GCode:=GetGCodeFromString(tokentext);
               // Store received line gcodes
               GCodeList.Add(GCode);
-              Inc(k,length(t));
-              if (length(t)=0) then Inc(k);
+              Inc(lineindex,length(tokentext));
+              if (length(tokentext)=0) then Inc(lineindex);
             end;
           tkNcode:
             begin
-              Inc(k,length(t));
-              if (length(t)=0) then Inc(k);
+              Inc(lineindex,length(tokentext));
+              if (length(tokentext)=0) then Inc(lineindex);
             end;
           tkParam:
             begin
               // This should only happen if we have new data !!
               ParamData:=false;
-              Inc(k,length(t));
-              if (length(t)=0) then Inc(k);
-              Param:=t;
-              if (ParameterList.IndexOf(Param)=-1) then
+              Inc(lineindex,length(tokentext));
+              if (length(tokentext)=0) then Inc(lineindex);
+              ParamName:=tokentext;
+              if (ParameterList.IndexOf(ParamName)=-1) then
               begin
                 // Key not yet defined.
                 // So, get its value !
                 repeat
-                  TSynCNCSyn(CommandOutputScreen.Highlighter).GetHighlighterAttriAtRowColEx(TPoint.Create(k,linenumber+1),t,i,j,SHA);
+                  TSynCNCSyn(CommandOutputScreen.Highlighter).GetHighlighterAttriAtRowColEx(TPoint.Create(lineindex,linenumber+1),tokentext,tokenindex,j,SHA);
                   if (SHA=nil) then break;
-                  tTK:=TtkTokenKind(i);
+                  tTK:=TtkTokenKind(tokenindex);
                   if tTK in [tkSpace,tkEqual] then
                   begin
                     if (tTK=tkEqual) then ParamData:=True;
-                    Inc(k,length(t));
-                    if (length(t)=0) then Inc(k);
+                    Inc(lineindex,length(tokentext));
+                    if (length(tokentext)=0) then Inc(lineindex);
                   end else break;
                 until false;
                 // We have skipped all spaces leading and trailing the equal sign
@@ -536,25 +538,25 @@ begin
                 begin
                   s:='';
                   repeat
-                    tTK:=TtkTokenKind(i);
+                    tTK:=TtkTokenKind(tokenindex);
                     if tTK in [tkSpace,tkNumber] then
                     begin
-                      if (tTK=tkNumber) then s:=s+t;
-                      Inc(k,length(t));
-                      if (length(t)=0) then Inc(k);
+                      if (tTK=tkNumber) then s:=s+tokentext;
+                      Inc(lineindex,length(tokentext));
+                      if (length(tokentext)=0) then Inc(lineindex);
                     end else break;
-                    TSynCNCSyn(CommandOutputScreen.Highlighter).GetHighlighterAttriAtRowColEx(TPoint.Create(k,linenumber+1),t,i,j,SHA);
+                    TSynCNCSyn(CommandOutputScreen.Highlighter).GetHighlighterAttriAtRowColEx(TPoint.Create(lineindex,linenumber+1),tokentext,tokenindex,j,SHA);
                     if (SHA=nil) then break;
                   until false;
                   if (Length(s)>0) then
                   begin
-                    ParameterList.Add(Param,GetDouble(s));
+                    ParameterList.Add(ParamName,GetDouble(s));
                   end;
                 end
                 else
                 begin
                   // We should newer get here
-                  raise EArgumentException.Create ('Got parameter definition ('+Param+'), but no value defined !');
+                  raise EArgumentException.Create ('Got parameter definition ('+ParamName+'), but no value defined !');
                 end;
                 if (SHA=nil) then break else continue;
               end;
@@ -570,30 +572,30 @@ begin
                 tkSpace,
                 tkAbstract,
                 tkNormal,
-                tkKey,
+                tkFunction,
                 tkIdentifier,
                 tkNcode,
                 tkNone
                 ] then
                 begin
-                  Inc(k,length(t));
-                  if (length(t)=0) then Inc(k);
+                  Inc(lineindex,length(tokentext));
+                  if (length(tokentext)=0) then Inc(lineindex);
                 end
                 else
                 begin
-                  Inc(k);
+                  Inc(lineindex);
                   s:='';
                   ParamData:=false;
                   repeat
-                    TSynCNCSyn(CommandOutputScreen.Highlighter).GetHighlighterAttriAtRowColEx(TPoint.Create(k,linenumber+1),t,i,j,SHA);
+                    TSynCNCSyn(CommandOutputScreen.Highlighter).GetHighlighterAttriAtRowColEx(TPoint.Create(lineindex,linenumber+1),tokentext,tokenindex,j,SHA);
                     if (SHA=nil) then break;
-                    tTK:=TtkTokenKind(i);
+                    tTK:=TtkTokenKind(tokenindex);
                     if tTK in [tkSpace,tkNumber,tkParam] then
                     begin
                       if (tTK=tkParam) then ParamData:=True;
-                      if (tTK<>tkSpace) then s:=s+t;
-                      Inc(k,length(t));
-                      if (length(t)=0) then Inc(k);
+                      if (tTK<>tkSpace) then s:=s+tokentext;
+                      Inc(lineindex,length(tokentext));
+                      if (length(tokentext)=0) then Inc(lineindex);
                     end else break;
                   until false;
                   if (Length(s)>0) then
@@ -609,15 +611,18 @@ begin
 
                     if ParamData then
                     begin
-                      // We got a param !!
-                      Param:=s;
+                      // We got a ParamName !!
+                      ParamName:=s;
                       GCData[tTK].ValueSet:=True;
-                      try
-                        GCData[tTK].NewValue:=ParameterList.KeyData[Param];
-                       except
-                         GCData[tTK].NewValue:=0;
-                         //raise EArgumentException.Create('Got parameter ('+Param+'), but no value defined !');
-                       end;
+                      if (ParameterList.IndexOf(ParamName)=-1) then
+                      begin
+                        GCData[tTK].NewValue:=0;
+                        //raise EArgumentException.Create('Got parameter ('+ParamName+'), but no value defined !');
+                      end
+                      else
+                      begin
+                        GCData[tTK].NewValue:=ParameterList.KeyData[ParamName];
+                      end;
                      end
                     else
                     begin
@@ -625,15 +630,13 @@ begin
                       GCData[tTK].ValueSet:=True;
                       GCData[tTK].NewValue:=GetDouble(s);
                     end;
-
-
                   end;
                   if (SHA=nil) then break else continue;
                 end;
             end;
         end;
       end;
-      TSynCNCSyn(CommandOutputScreen.Highlighter).GetHighlighterAttriAtRowColEx(TPoint.Create(k,linenumber+1),t,i,j,SHA);
+      TSynCNCSyn(CommandOutputScreen.Highlighter).GetHighlighterAttriAtRowColEx(TPoint.Create(lineindex,linenumber+1),tokentext,tokenindex,j,SHA);
       if (SHA=nil) then break;
     until false;
 
