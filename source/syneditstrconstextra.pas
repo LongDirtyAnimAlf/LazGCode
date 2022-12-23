@@ -44,6 +44,7 @@ const
   SYNS_AttrEmbedSQL             =  'EmbeddedSQL';
   SYNS_AttrEmbedText            =  'EmbeddedText';
   SYNS_AttrEntityReference      =  'EntityReference';
+  SYNS_AttrEqual                =  'Equal';
   SYNS_AttrEscapeAmpersand      =  'EscapeAmpersand';
   SYNS_AttrEvent                =  'Event';
   SYNS_AttrException            =  'Exception';
@@ -266,6 +267,7 @@ resourcestring
   SYNS_FriendlyAttrEmbedSQL             =  'Embedded SQL';
   SYNS_FriendlyAttrEmbedText            =  'Embedded Text';
   SYNS_FriendlyAttrEntityReference      =  'Entity Reference';
+  SYNS_FriendlyAttrEqual                =  'Equal';
   SYNS_FriendlyAttrEscapeAmpersand      =  'Escape Ampersand';
   SYNS_FriendlyAttrEvent                =  'Event';
   SYNS_FriendlyAttrException            =  'Exception';

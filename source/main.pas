@@ -397,12 +397,15 @@ const
 type
   TGCodeList = specialize TFPGList<TtkGCodeKind>;
   TTokenList = specialize TFPGList<TtkTokenKind>;
+  TParameters = specialize TFPGMap<shortstring,double>;
 var
   GCodeList             : TGCodeList;
   TokenList             : TTokenList;
+  ParameterList         : TParameters;
 
   linenumber,i,j,k      : integer;
   s,t                   : string;
+  Param                 : string;
   SHA                   : TSynHighlighterAttributes;
   tTK                   : TtkTokenKind;
   GCode                 : TtkGCodeKind;
@@ -414,6 +417,8 @@ var
   FP,FQ,FR              : PDouble;
   DestX,DestY,DestZ     : PDouble;
   LastX,LastY,LastZ     : PDouble;
+
+  ParamData             : boolean;
 
   GotAxis               : boolean;
   GotIJK                : boolean;
@@ -436,7 +441,7 @@ var
   GCodeCutterComp       : TtkGCodeKind;
 begin
   GCodeList:=TGCodeList.Create;
-
+  ParameterList:=TParameters.Create;
 
   zoom          := 1;
   moveTranslate := Point(0,0);
@@ -505,8 +510,54 @@ begin
             end;
           tkParam:
             begin
+              // This should only happen if we have new data !!
+              ParamData:=false;
               Inc(k,length(t));
               if (length(t)=0) then Inc(k);
+              Param:=t;
+              if (ParameterList.IndexOf(Param)=-1) then
+              begin
+                // Key not yet defined.
+                // So, get its value !
+                repeat
+                  TSynCNCSyn(CommandOutputScreen.Highlighter).GetHighlighterAttriAtRowColEx(TPoint.Create(k,linenumber+1),t,i,j,SHA);
+                  if (SHA=nil) then break;
+                  tTK:=TtkTokenKind(i);
+                  if tTK in [tkSpace,tkEqual] then
+                  begin
+                    if (tTK=tkEqual) then ParamData:=True;
+                    Inc(k,length(t));
+                    if (length(t)=0) then Inc(k);
+                  end else break;
+                until false;
+                // We have skipped all spaces leading and trailing the equal sign
+                // Now get the parameter datavalue itself
+                if ParamData then
+                begin
+                  s:='';
+                  repeat
+                    tTK:=TtkTokenKind(i);
+                    if tTK in [tkSpace,tkNumber] then
+                    begin
+                      if (tTK=tkNumber) then s:=s+t;
+                      Inc(k,length(t));
+                      if (length(t)=0) then Inc(k);
+                    end else break;
+                    TSynCNCSyn(CommandOutputScreen.Highlighter).GetHighlighterAttriAtRowColEx(TPoint.Create(k,linenumber+1),t,i,j,SHA);
+                    if (SHA=nil) then break;
+                  until false;
+                  if (Length(s)>0) then
+                  begin
+                    ParameterList.Add(Param,GetDouble(s));
+                  end;
+                end
+                else
+                begin
+                  // We should newer get here
+                  raise EArgumentException.Create ('Got parameter definition ('+Param+'), but no value defined !');
+                end;
+                if (SHA=nil) then break else continue;
+              end;
             end;
           else
             begin
@@ -532,13 +583,15 @@ begin
                 begin
                   Inc(k);
                   s:='';
+                  ParamData:=false;
                   repeat
                     TSynCNCSyn(CommandOutputScreen.Highlighter).GetHighlighterAttriAtRowColEx(TPoint.Create(k,linenumber+1),t,i,j,SHA);
                     if (SHA=nil) then break;
                     tTK:=TtkTokenKind(i);
-                    if tTK in [tkSpace,tkNumber] then
+                    if tTK in [tkSpace,tkNumber,tkParam] then
                     begin
-                      if (tTK=tkNumber) then s:=s+t;
+                      if (tTK=tkParam) then ParamData:=True;
+                      if (tTK<>tkSpace) then s:=s+t;
                       Inc(k,length(t));
                       if (length(t)=0) then Inc(k);
                     end else break;
@@ -551,8 +604,25 @@ begin
                     if tTK=tkUcode then tTK:=tkAcode;
                     if tTK=tkVcode then tTK:=tkBcode;
                     if tTK=tkWcode then tTK:=tkCcode;
-                    GCData[tTK].ValueSet:=True;
-                    GCData[tTK].NewValue:=GetDouble(s);
+                    if ParamData then
+                    begin
+                      // We got a param !!
+                      Param:=s;
+                      GCData[tTK].ValueSet:=True;
+                      try
+                        GCData[tTK].NewValue:=ParameterList.KeyData[Param];
+                       except
+                         raise EArgumentException.Create('Got parameter ('+Param+'), but no value defined !');
+                       end;
+                     end
+                    else
+                    begin
+                      // We got normal number data
+                      GCData[tTK].ValueSet:=True;
+                      GCData[tTK].NewValue:=GetDouble(s);
+                    end;
+
+
                   end;
                   if (SHA=nil) then break else continue;
                 end;
@@ -799,6 +869,7 @@ begin
   newp_boundsF:=newp.GetBounds(1);
   newp_boundsF.Inflate(4,4);
 
+  ParameterList.Free;
   GCodeList.Free;
 end;
 

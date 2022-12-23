@@ -518,6 +518,8 @@ object GCodeViewer: TGCodeViewer
     MouseTextActions = <>
     MouseSelActions = <>
     Lines.Strings = (
+      '#1234 = 345.1234'
+      'X#1234'
       'G00 G18 G54 G40 G80 G90.1'
       'G00 X3.1000 Z0.1000 (Rapid move to Clearance Height)'
       'G01 X2.9500 F0.0016'

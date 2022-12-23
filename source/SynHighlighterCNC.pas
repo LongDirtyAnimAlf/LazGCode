@@ -99,6 +99,7 @@ type
     FStringAttri: TSynHighlighterAttributes;
     FReservedAttri: TSynHighlighterAttributes;
     FNormalAttri: TSynHighlighterAttributes;
+    FEqualAttri: TSynHighlighterAttributes;
     FParameterAttri: TSynHighlighterAttributes;
     FNumberAttri: TSynHighlighterAttributes;
     FSpaceAttri: TSynHighlighterAttributes;
@@ -250,6 +251,7 @@ type
    property StringAttri: TSynHighlighterAttributes read FStringAttri write FStringAttri;
    property ReservedAttri: TSynHighlighterAttributes read FReservedAttri write FReservedAttri;
    property NormalAttri: TSynHighlighterAttributes read FNormalAttri write FNormalAttri;
+   property EqualAttri: TSynHighlighterAttributes read FEqualAttri write FEqualAttri;
    property ParameterAttri: TSynHighlighterAttributes read FParameterAttri write FParameterAttri;
    property NumberAttri: TSynHighlighterAttributes read FNumberAttri write FNumberAttri;
    property SpaceAttri: TSynHighlighterAttributes read FSpaceAttri write FSpaceAttri;
@@ -965,6 +967,12 @@ begin
   FReservedAttri.Style := [fsBold];
   FReservedAttri.Foreground := $004A9AFF;
   AddAttribute(FReservedAttri);
+
+  // equal
+  FEqualAttri := TSynHighlighterAttributes.Create(SYNS_AttrEqual,
+    SYNS_FriendlyAttrEqual);
+  FEqualAttri.Foreground := TColor($FFFF00);
+  AddAttribute(FEqualAttri);
 
   // parameters
   FParameterAttri := TSynHighlighterAttributes.Create(SYNS_AttrParameter,
@@ -1879,6 +1887,7 @@ begin
     tkParam: Result := FParameterAttri;
     tkNumber: Result := FNumberAttri;
     tkSpace: Result := FSpaceAttri;
+    tkEqual: Result := FEqualAttri;
     tkAbstract: Result := FSymbolAttri;
 
     tkKey: Result := FKeyAttri;
@@ -1923,7 +1932,7 @@ end;
 function TSynCNCSyn.IsIdentChar(AChar: Char): Boolean;
 begin
   case AChar of
-    '-', '.', '+', '0' .. '9', 'a' .. 'z', 'A' .. 'Z':
+    {'=', }'-', '.', '+', '0' .. '9', 'a' .. 'z', 'A' .. 'Z':
       Result := True;
   else
     Result := False;
