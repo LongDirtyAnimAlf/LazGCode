@@ -8,6 +8,7 @@ uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs,
   StdCtrls, EditBtn, ExtCtrls, Types, fgl,
   SynEdit, SynEditHighlighter, SynHighlighterCNC,SynEditTypes, SynEditMarkup, SynEditMarkupBracket, SynEditMarkupBracketCNC,
+  ParseExpr,
   BGRAPath, BGRABitmapTypes, BGRABitmap, BGRACanvas2D, BGRAVirtualScreen, BGRALayers;
 
 type
@@ -134,8 +135,10 @@ type
     btnTraceGCode: TButton;
     btnLoadBear: TButton;
     btnTraceView: TButton;
+    Button1: TButton;
     buttonQuit: TButton;
     CommandOutputScreen: TSynEdit;
+    Edit1: TEdit;
     editXPosition: TEdit;
     editFileInput: TFileNameEdit;
     editYPosition: TEdit;
@@ -146,6 +149,7 @@ type
     memoBear: TMemo;
     Panel1: TPanel;
     Panel2: TPanel;
+    procedure Button1Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnLoadBearClick(Sender: TObject);
@@ -178,6 +182,8 @@ type
 
     BGRAVirtualScreen2: TBGRAVirtualScreen;
     BGRAVirtualScreen3: TBGRAVirtualScreen;
+
+    MyParser      : TExpressionParser;
 
     procedure BGRAVirtualScreen2MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure BGRAVirtualScreen2MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
@@ -281,6 +287,7 @@ begin
   CNC := TSynCNCSyn.Create(CommandOutputScreen);
   CommandOutputScreen.Highlighter := CNC;
 
+  (*
   // Remove standard bracket markup
   mc:=TSynEditMarkupBracket(CommandOutputScreen.MarkupByClass[TSynEditMarkupBracket]);
   CommandOutputScreen.MarkupManager.RemoveMarkUp(mc);
@@ -289,9 +296,15 @@ begin
   // Add CNC bracket markup
   new:=TSynEditMarkupBracketCNC.Create(CommandOutputScreen);
   CommandOutputScreen.MarkupManager.AddMarkUp(new);
-  CommandOutputScreen.Options:=CommandOutputScreen.Options+[eoBracketHighlight];
   TSynEditMarkupBracket(CommandOutputScreen.MarkupByClass[TSynEditMarkupBracketCNC]).MarkupInfo.Background:=clBlue;
   TSynEditMarkupBracket(CommandOutputScreen.MarkupByClass[TSynEditMarkupBracketCNC]).MarkupInfo.BackPriority:=99999+1;
+  *)
+
+  CommandOutputScreen.Options:=CommandOutputScreen.Options+[eoBracketHighlight];
+
+  // Formula parser
+  MyParser := TCstyleParser.Create;
+  TCStyleParser(MyParser).CStyle:=False;
 
   newp_boundsF:=RectF(0,0,0,0);
   newp:=TBGRAPath.Create;
@@ -323,6 +336,18 @@ begin
   FCursorLayer.Fill(BGRA(0,0,0,255),dmSet);
 end;
 
+procedure TGCodeViewer.Button1Click(Sender: TObject);
+var
+  i:integer;
+  result:Double;
+begin
+  result:=0.1;
+  MyParser.DecimSeparator:='.';
+  MyParser.DefineVariable('result', @result);
+  i := MyParser.AddExpression('[cos[.95]]');
+  Edit1.Text:=MyParser.AsString[i];
+end;
+
 procedure TGCodeViewer.FormDestroy(Sender: TObject);
 begin
   BGRAVirtualScreen2.Free;
@@ -330,6 +355,7 @@ begin
   if Assigned(FFlattened) then FFlattened.Free;
   bmpl.Free;
   newp.Free;
+  MyParser.Free;
 end;
 
 procedure TGCodeViewer.Panel1Resize(Sender: TObject);
@@ -411,7 +437,7 @@ end;
 
 procedure TGCodeViewer.RenderGCode;
 const
-  AXISNUMBERS : set of TtkTokenKind = [tkXcode, tkYcode, tkZcode, tkAcode, tkBcode, tkCcode, tkUcode, tkVcode, tkWcode];
+  AXISNUMBERS : set of TtkTokenKind = [tkXcode, tkYcode, tkZcode, tkAcode, tkBcode, tkCcode, tkEcode, tkUcode, tkVcode, tkWcode];
 type
   TGCodeList = specialize TFPGList<TtkGCodeKind>;
   TTokenList = specialize TFPGList<TtkTokenKind>;
@@ -528,9 +554,14 @@ begin
               Inc(lineindex,length(tokentext));
               if (length(tokentext)=0) then Inc(lineindex);
             end;
+          tkExpression:
+            begin
+              Inc(lineindex,length(tokentext));
+              if (length(tokentext)=0) then Inc(lineindex);
+            end;
           tkParam:
             begin
-              // This should only happen if we have new data !!
+              // This should only happen if we have new param data !!
               ParamData:=false;
               Inc(lineindex,length(tokentext));
               if (length(tokentext)=0) then Inc(lineindex);
@@ -658,7 +689,6 @@ begin
       if (SHA=nil) then break;
     until false;
 
-
     // Process received GCodes
     if (GCodeList.Count>0) then
     begin
@@ -681,8 +711,6 @@ begin
         if GCodeEnumerator=TtkGCodeKind.G92_1 then OffsetMode:=False;
       end;
     end;
-
-
 
     for TokenEnumerator in AXISNUMBERS do
     begin
@@ -712,7 +740,6 @@ begin
         end;
       end;
     end;
-
 
     if GCodePlane=TtkGCodeKind.G18 then
     begin

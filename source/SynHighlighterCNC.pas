@@ -29,7 +29,8 @@ type
   tkNull,        //Null text
 
   tkReserved,    //Reserved text
-  tkComment,     //Comment with( )
+  tkComment,     //Comment with ( )
+  tkExpression,  //Expression with [ ]
   tkNormal,      //Normal text
   tkText,        //String text
   tkParam,       //Parameter
@@ -98,6 +99,7 @@ type
     FKeyAttri           : TSynHighlighterAttributes;
 
     FCommentAttri       : TSynHighlighterAttributes;
+    FExpressionAttri    : TSynHighlighterAttributes;
     FStringAttri        : TSynHighlighterAttributes;
     FReservedAttri      : TSynHighlighterAttributes;
     FNormalAttri        : TSynHighlighterAttributes;
@@ -141,6 +143,7 @@ type
     procedure LFProc;
     procedure CommentOpenProc;
     procedure CommentProc;
+    procedure ExpressionProc;
     procedure SymbolProc;
     procedure NumberProc;
     procedure ParameterProc;
@@ -250,6 +253,7 @@ type
       out Attri: TSynHighlighterAttributes): boolean;
   published
    property CommentAttri: TSynHighlighterAttributes read FCommentAttri write FCommentAttri;
+   property ExpressionAttri: TSynHighlighterAttributes read FExpressionAttri write FExpressionAttri;
    property StringAttri: TSynHighlighterAttributes read FStringAttri write FStringAttri;
    property ReservedAttri: TSynHighlighterAttributes read FReservedAttri write FReservedAttri;
    property NormalAttri: TSynHighlighterAttributes read FNormalAttri write FNormalAttri;
@@ -826,11 +830,40 @@ begin
   end;
 end;
 
+procedure TSynCNCSyn.ExpressionProc;
+var
+  tokencounter:integer;
+begin
+  FTokenID := tkNormal;
+  case FLine[FRun] of
+     '[':
+     begin
+       FTokenID := tkExpression;
+       inc(FRun, 1);
+       tokencounter:=1;
+       repeat
+         if (FLine[FRun] = '[') then Inc(tokencounter);
+         if (FLine[FRun] = ']') then Dec(tokencounter);
+         if (tokencounter=0) then
+         begin
+           inc(FRun, 1);
+           break;
+         end;
+         if not IsLineEnd(FRun) then
+           inc(FRun);
+       until IsLineEnd(FRun);
+       if (tokencounter<>0) then FTokenID := tkNormal;
+     end
+  else
+    SpaceProc;
+  end;
+end;
+
 procedure TSynCNCSyn.SymbolProc;
 begin
   FTokenID := tkNormal;
   case FLine[FRun] of
-    '%','[',']','@','^','*':
+    '%','@','^','*':
       begin
         FTokenID := tkAbstract;
         inc(FRun, 1);
@@ -967,6 +1000,14 @@ begin
   FCommentAttri.Style := [fsItalic];
   FCommentAttri.Foreground := $00FF8800;
   AddAttribute(FCommentAttri);
+
+  // function
+  FExpressionAttri := TSynHighlighterAttributes.Create(SYNS_AttrExpression,
+    SYNS_FriendlyAttrExpression);
+  FExpressionAttri.Style := [fsItalic];
+  FExpressionAttri.Foreground := $00FFFF00;
+  FExpressionAttri.Background := $00440000;
+  AddAttribute(FExpressionAttri);
 
   // string
   FStringAttri := TSynHighlighterAttributes.Create(SYNS_AttrString,
@@ -1811,9 +1852,10 @@ begin
       #10: LFProc;
       #13: CRProc;
       '(': CommentOpenProc;
+      '[': ExpressionProc;
       #1 .. #9, #11, #12, #14 .. #32: SpaceProc;
       '.','-','0' .. '9': NumberProc;
-      '%','[',']','@','^','*',';','=': SymbolProc;
+      '%','@','^','*',';','=': SymbolProc;
 //       'A'..'Z', 'a'..'z', '_': IdentProc;
       '#': ParameterProc;
       'a': ACodeProc;
@@ -1900,6 +1942,7 @@ function TSynCNCSyn.GetTokenAttribute: TSynHighlighterAttributes;
 begin
   case GetTokenID of
     tkComment: Result := FCommentAttri;
+    tkExpression: Result := FExpressionAttri;
     tkText: Result := FStringAttri;
     tkNormal: Result := FNormalAttri;
     tkReserved: Result := FReservedAttri;

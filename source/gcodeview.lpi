@@ -78,7 +78,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir);..\libraries\jvcl\jvcl\common;..\libraries\bgrabitmap\bgrabitmap;..\libraries\bgracontrols"/>
-      <OtherUnitFiles Value="..\libraries;..\libraries\jvcl\jvcl\run;..\libraries\bgrabitmap\bgrabitmap;..\libraries\bgracontrols"/>
+      <OtherUnitFiles Value="..\libraries;..\libraries\jvcl\jvcl\run;..\libraries\bgrabitmap\bgrabitmap;..\libraries\bgracontrols;..\libraries\expressionparser"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>

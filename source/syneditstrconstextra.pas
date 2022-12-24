@@ -48,6 +48,7 @@ const
   SYNS_AttrEscapeAmpersand      =  'EscapeAmpersand';
   SYNS_AttrEvent                =  'Event';
   SYNS_AttrException            =  'Exception';
+  SYNS_AttrExpression           =  'Expression';
   SYNS_AttrFirstTri             =  'FirstTri';
   SYNS_AttrFloat                =  'Float';
   SYNS_AttrForm                 =  'Form';
@@ -271,6 +272,7 @@ resourcestring
   SYNS_FriendlyAttrEscapeAmpersand      =  'Escape Ampersand';
   SYNS_FriendlyAttrEvent                =  'Event';
   SYNS_FriendlyAttrException            =  'Exception';
+  SYNS_FriendlyAttrExpression           =  'Expression';
   SYNS_FriendlyAttrFirstTri             =  'FirstTri';
   SYNS_FriendlyAttrFloat                =  'Float';
   SYNS_FriendlyAttrForm                 =  'Form';

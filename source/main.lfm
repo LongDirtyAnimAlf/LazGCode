@@ -517,6 +517,9 @@ object GCodeViewer: TGCodeViewer
     MouseTextActions = <>
     MouseSelActions = <>
     Lines.Strings = (
+      '; ik ben ook gek'
+      '(ik ben gek)'
+      '[werwer[werwer]wrwer][dfgdfg[df]g][hallo]'
       '#1234 = 345.1234'
       'X#1234'
       'G00 G18 G54 G40 G80 G90.1'
@@ -1096,7 +1099,7 @@ object GCodeViewer: TGCodeViewer
       '(End Gcode file)'
       '%'
     )
-    Options = [eoSmartTabs, eoTabsToSpaces, eoTrimTrailingSpaces]
+    Options = [eoBracketHighlight, eoSmartTabs, eoTabsToSpaces, eoTrimTrailingSpaces]
     VisibleSpecialChars = [vscSpace, vscTabAtLast]
     SelectedColor.BackPriority = 50
     SelectedColor.ForePriority = 50
@@ -1106,7 +1109,7 @@ object GCodeViewer: TGCodeViewer
     SelectedColor.UnderlinePriority = 50
     SelectedColor.StrikeOutPriority = 50
     BracketHighlightStyle = sbhsBoth
-    BracketMatchColor.Background = clNone
+    BracketMatchColor.Background = clFuchsia
     BracketMatchColor.Foreground = clNone
     BracketMatchColor.Style = [fsBold]
     FoldedCodeColor.Background = clNone
@@ -1212,10 +1215,10 @@ object GCodeViewer: TGCodeViewer
     TabOrder = 6
   end
   object memoBear: TMemo
-    Left = 689
-    Height = 54
-    Top = 18
-    Width = 128
+    Left = 872
+    Height = 22
+    Top = 40
+    Width = 120
     Lines.Strings = (
       'T1M6'
       'G21'
@@ -16385,9 +16388,9 @@ object GCodeViewer: TGCodeViewer
     Visible = False
   end
   object memoLetters: TMemo
-    Left = 838
-    Height = 53
-    Top = 21
+    Left = 872
+    Height = 29
+    Top = 8
     Width = 117
     Lines.Strings = (
       'M03 F100'
@@ -18609,5 +18612,22 @@ object GCodeViewer: TGCodeViewer
     Width = 85
     ReadOnly = True
     TabOrder = 14
+  end
+  object Button1: TButton
+    Left = 559
+    Height = 30
+    Top = 53
+    Width = 108
+    Caption = 'Button1'
+    OnClick = Button1Click
+    TabOrder = 15
+  end
+  object Edit1: TEdit
+    Left = 700
+    Height = 23
+    Top = 22
+    Width = 134
+    TabOrder = 16
+    Text = 'Edit1'
   end
 end
