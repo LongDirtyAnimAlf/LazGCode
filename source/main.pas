@@ -144,15 +144,6 @@ const
 
 type
   { TGCodeViewer }
-
-  TGCodeData = record
-    PrevValue: double;
-    NewValue: double;
-    ValueSet:boolean;
-  end;
-
-  TGCodeDataArray = array[TtkTokenKind] of TGCodeData;
-
   TGCodeViewer = class(TForm)
     btnLoadLetters: TButton;
     btnRenderGCode: TButton;
@@ -184,7 +175,6 @@ type
     procedure Panel1Resize(Sender: TObject);
   private
     { private declarations }
-    GCData        : TGCodeDataArray;
     CNC           : TSynCNCSyn;
 
     newc          : TBGRACanvas2D;
@@ -462,12 +452,37 @@ end;
 
 procedure TGCodeViewer.RenderGCode;
 const
-  AXISNUMBERS : set of TtkTokenKind = [tkXcode, tkYcode, tkZcode, tkAcode, tkBcode, tkCcode, tkEcode, tkUcode, tkVcode, tkWcode];
+  XYZAXISNUMBERS : set of TtkTokenKind = [tkXcode, tkYcode, tkZcode];
+  ABCAXISNUMBERS : set of TtkTokenKind = [tkAcode, tkBcode, tkCcode];
+  UWVAXISNUMBERS : set of TtkTokenKind = [tkUcode, tkVcode, tkWcode];
+  DOUBLEZERO     : double = 0.0;
+
+
+  //XYZAXISNUMBERS+ABCAXISNUMBERS+UWVAXISNUMBERS
 type
-  TGCodeList = specialize TFPGList<TtkGCodeKind>;
-  TTokenList = specialize TFPGList<TtkTokenKind>;
-  TParameters = specialize TFPGMap<shortstring,double>;
+  TGCodeData = record
+    PrevValue: double;
+    NewValue: double;
+    ValueSet:boolean;
+  end;
+
+  TOffsetData = record
+    XYZOffset : array [tkXcode..tkZcode] of double;
+    ABCOffset : array [tkAcode..tkCcode] of double;
+    UVWOffset : array [tkUcode..tkWcode] of double;
+    ROffset   : double;
+  end;
+
+  TGCodeDataArray   = array[TtkTokenKind] of TGCodeData;
+  TOffsetDataArray  = array[TtkGCodeKind.G54..TtkGCodeKind.G59_3] of TOffsetData;
+
+  TGCodeList        = specialize TFPGList<TtkGCodeKind>;
+  TTokenList        = specialize TFPGList<TtkTokenKind>;
+  TParameters       = specialize TFPGMap<shortstring,double>;
 var
+  GCData                : TGCodeDataArray;
+  OffsetDataData        : TOffsetDataArray;
+
   GCodeList             : TGCodeList;
   TokenList             : TTokenList;
   ParameterList         : TParameters;
@@ -488,6 +503,7 @@ var
   FP,FQ,FR              : PDouble;
   DestX,DestY,DestZ     : PDouble;
   LastX,LastY,LastZ     : PDouble;
+  OffX,OffY,OffZ,OffR   : PDouble;
 
   ParamData             : boolean;
   ExpressionData        : boolean;
@@ -524,7 +540,7 @@ begin
   newp.beginPath;
 
   GCodeMotion:=TtkGCodeKind.G0;
-  GCodeDistance:=TtkGCodeKind.G91;
+  GCodeDistance:=TtkGCodeKind.G90;
   GCodeArcDistance:=TtkGCodeKind.G91_1;
   GCodePlane:=TtkGCodeKind.G17;
   GCodeFeed:=TtkGCodeKind.G94;
@@ -536,6 +552,8 @@ begin
   OffsetMode:=False;
 
   GCData:=Default(TGCodeDataArray);
+  OffsetDataData:=Default(TOffsetDataArray);
+
 
   GCode:=TtkGCodeKind.GUnknown;
 
@@ -554,6 +572,11 @@ begin
   LastX:=@GCData[tkXcode].PrevValue;
   LastY:=@GCData[tkYcode].PrevValue;
   LastZ:=@GCData[tkZcode].PrevValue;
+
+  OffX:=@DOUBLEZERO;
+  OffY:=@DOUBLEZERO;
+  OffZ:=@DOUBLEZERO;
+  OffR:=@DOUBLEZERO;
 
   for linenumber:=0 to Pred(CommandOutputScreen.Lines.Count) do
   begin
@@ -741,7 +764,7 @@ begin
     until false;
 
     // Set flags to indicate the type of received data
-    for TokenEnumerator in AXISNUMBERS do
+    for TokenEnumerator in XYZAXISNUMBERS{+ABCAXISNUMBERS+UWVAXISNUMBERS} do
     begin
       GotAxis:=GCData[TokenEnumerator].ValueSet;
       if GotAxis then break;
@@ -787,33 +810,80 @@ begin
 
         // Now process individual gcode commands
 
-        if GCodeEnumerator in [TtkGCodeKind.G28_1,TtkGCodeKind.G30_1] then
+        // Store (offset) data
+        if GCodeEnumerator in
+        [
+          TtkGCodeKind.G28_1,
+          TtkGCodeKind.G30_1,
+          TtkGCodeKind.G54,
+          TtkGCodeKind.G55,
+          TtkGCodeKind.G56,
+          TtkGCodeKind.G57,
+          TtkGCodeKind.G58,
+          TtkGCodeKind.G59,
+          TtkGCodeKind.G59_1,
+          TtkGCodeKind.G59_2,
+          TtkGCodeKind.G59_3,
+          TtkGCodeKind.G92,
+          TtkGCodeKind.G92_1
+        ] then
         begin
+
+          // Set position in store
+          if (GCodeEnumerator=TtkGCodeKind.G54) then j:=(5221+0);
+          if (GCodeEnumerator=TtkGCodeKind.G55) then j:=(5221+20);
+          if (GCodeEnumerator=TtkGCodeKind.G56) then j:=(5221+40);
+          if (GCodeEnumerator=TtkGCodeKind.G57) then j:=(5221+60);
+          if (GCodeEnumerator=TtkGCodeKind.G58) then j:=(5221+80);
+          if (GCodeEnumerator=TtkGCodeKind.G59) then j:=(5221+100);
+          if (GCodeEnumerator=TtkGCodeKind.G59_1) then j:=(5221+120);
+          if (GCodeEnumerator=TtkGCodeKind.G59_2) then j:=(5221+140);
+          if (GCodeEnumerator=TtkGCodeKind.G59_3) then j:=(5221+160);
           // Store home positions
           if (GCodeEnumerator=TtkGCodeKind.G28_1) then j:=5161;
           if (GCodeEnumerator=TtkGCodeKind.G30_1) then j:=5181;
-          for TokenEnumerator in AXISNUMBERS do
-          begin
-            if (TokenEnumerator=tkEcode) then continue;
-            ParameterList.AddOrSetData('#'+InttoStr(j),GCData[TokenEnumerator].PrevValue);
-            Inc(j);
-          end;
-        end;
-
-        if GCodeEnumerator in [TtkGCodeKind.G92,TtkGCodeKind.G92_1] then
-        begin
           // Store offsets
-          j:=5211;
-          for TokenEnumerator in AXISNUMBERS do
+          if GCodeEnumerator in [TtkGCodeKind.G92,TtkGCodeKind.G92_1] then j:=5211;
+
+          // Store (or reset) the data at the right location
+          for TokenEnumerator in XYZAXISNUMBERS+ABCAXISNUMBERS+UWVAXISNUMBERS do
           begin
-            if (TokenEnumerator=tkEcode) then continue;
-            if GCodeEnumerator=TtkGCodeKind.G92 then
+            if GCodeEnumerator=TtkGCodeKind.G92_1 then
             begin
-             if GCData[TokenEnumerator].ValueSet then ParameterList.AddOrSetData('#'+InttoStr(j),GCData[TokenEnumerator].PrevValue-GCData[TokenEnumerator].NewValue);
+              ParameterList.AddOrSetData('#'+InttoStr(j),0);
             end
-            else ParameterList.AddOrSetData('#'+InttoStr(j),0);
+            else
+            begin
+              if GCData[TokenEnumerator].ValueSet then ParameterList.AddOrSetData('#'+InttoStr(j),GCData[TokenEnumerator].PrevValue-GCData[TokenEnumerator].NewValue);
+            end;
             Inc(j);
+
+            if GCData[TokenEnumerator].ValueSet then
+            begin
+              // Store data in runtime array
+              if TokenEnumerator in XYZAXISNUMBERS then OffsetDataData[GCodeEnumerator].XYZOffset[TokenEnumerator]:=GCData[TokenEnumerator].NewValue;
+              if TokenEnumerator in ABCAXISNUMBERS then OffsetDataData[GCodeEnumerator].ABCOffset[TokenEnumerator]:=GCData[TokenEnumerator].NewValue;
+              if TokenEnumerator in UWVAXISNUMBERS then OffsetDataData[GCodeEnumerator].UVWOffset[TokenEnumerator]:=GCData[TokenEnumerator].NewValue;
+              if TokenEnumerator=tkRcode then OffsetDataData[GCodeEnumerator].ROffset:=GCData[TokenEnumerator].NewValue;
+            end;
+
+            if (GCodeEnumerator in [TtkGCodeKind.G54..TtkGCodeKind.G59_3]) then
+            begin
+              OffX:=@OffsetDataData[GCodeEnumerator].XYZOffset[tkXcode];
+              OffY:=@OffsetDataData[GCodeEnumerator].XYZOffset[tkYcode];
+              OffZ:=@OffsetDataData[GCodeEnumerator].XYZOffset[tkZcode];
+              OffR:=@OffsetDataData[GCodeEnumerator].ROffset;
+            end;
+            if (GCodeEnumerator=TtkGCodeKind.G53) then
+            begin
+              OffX:=@DOUBLEZERO;
+              OffY:=@DOUBLEZERO;
+              OffZ:=@DOUBLEZERO;
+              OffR:=@DOUBLEZERO;
+            end;
+
           end;
+
         end;
 
       end;
@@ -821,7 +891,7 @@ begin
 
     if (GCodeDistance=TtkGCodeKind.G91) then
     begin
-      for TokenEnumerator in AXISNUMBERS+[tkXcodePolar,tkYcodePolar] do
+      for TokenEnumerator in XYZAXISNUMBERS+ABCAXISNUMBERS+UWVAXISNUMBERS+[tkXcodePolar,tkYcodePolar] do
       begin
         // If we got a value, add it to its previous value: we are in relative mode
         if GCData[TokenEnumerator].ValueSet then
@@ -865,12 +935,8 @@ begin
       // Lines / moves
       if (GCodeMotion in [TtkGCodeKind.G0,TtkGCodeKind.G1]) then
       begin
-        if (GCodeMotion=TtkGCodeKind.G0) then newp.moveTo(DestX^,DestY^);
-        if (GCodeMotion=TtkGCodeKind.G1) then newp.lineTo(DestX^,DestY^);
-        if GCData[tkZcode].ValueSet then
-        begin
-          newp.addColor(MapHeightToBGRA(0.5+(DestZ^/(100000)),255));
-        end;
+        if (GCodeMotion=TtkGCodeKind.G0) then newp.moveTo(OffX^+DestX^,OffY^+DestY^);
+        if (GCodeMotion=TtkGCodeKind.G1) then newp.lineTo(OffX^+DestX^,OffY^+DestY^);
       end;
     end;
 
@@ -880,11 +946,11 @@ begin
       // Lines / moves
       if (GCodeMotion in [TtkGCodeKind.G0,TtkGCodeKind.G1]) then
       begin
-        if (GCodeMotion=TtkGCodeKind.G0) then newp.moveTo(DestX^,DestY^);
-        if (GCodeMotion=TtkGCodeKind.G1) then newp.lineTo(DestX^,DestY^);
+        if (GCodeMotion=TtkGCodeKind.G0) then newp.moveTo(OffX^+DestX^,OffY^+DestY^);
+        if (GCodeMotion=TtkGCodeKind.G1) then newp.lineTo(OffX^+DestX^,OffY^+DestY^);
         if GCData[tkZcode].ValueSet then
         begin
-          newp.addColor(MapHeightToBGRA(0.5+(DestZ^/(100000)),255));
+          newp.addColor(MapHeightToBGRA(0.5+(OffZ^+DestZ^/(100000)),255));
         end;
       end;
 
@@ -905,9 +971,9 @@ begin
             FI^:=-GCData[tkPcode].PrevValue;
             FJ^:=-GCData[tkQcode].PrevValue;
           end;
-          newp.bezierCurveTo(LastX^+FI^,LastY^+FJ^,DestX^+FP^,DestY^+FQ^,DestX^,DestY^);
-          //newp.arcDeg(DestX^,DestY^,0.1,0,360);
-          //newp.moveTo(DestX^,DestY^);
+          newp.bezierCurveTo(OffX^+LastX^+FI^,OffY^+LastY^+FJ^,OffX^+DestX^+FP^,OffY^+DestY^+FQ^,OffX^+DestX^,OffY^+DestY^);
+          //newp.arcDeg(OffX^+DestX^,OffY^+DestY^,0.1,0,360);
+          //newp.moveTo(OffX^+DestX^,OffY^+DestY^);
         end;
       end;
     end;
@@ -988,8 +1054,8 @@ begin
         end;
 
         // Finally, draw circle
-        newp.arcTo(ARadius,ARadius,0,(NOT GotR),(GCodeMotion=TtkGCodeKind.G2),DestX^,DestY^);
-        newp.moveTo(DestX^, DestY^);
+        newp.arcTo(ARadius,ARadius,0,(NOT GotR),(GCodeMotion=TtkGCodeKind.G2),OffX^+DestX^,OffX^+DestY^);
+        newp.moveTo(OffX^+DestX^, OffY^+DestY^);
       end;
     end;
 
