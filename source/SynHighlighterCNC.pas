@@ -67,8 +67,11 @@ type
   tkVcode,       //V axis of machine
   tkWcode,       //W axis of machine
   tkXcode,       //X axis of machine
+  tkXcodePolar,  //X axis of machine, polar
   tkYcode,       //Y axis of machine
-  tkZcode       //Z axis of machine
+  tkYcodePolar,  //Y axis of machine, polar
+  tkZcode        //Z axis of machine
+
   );
 
   TRangeState = (rsNormal, rsComment);
@@ -866,7 +869,7 @@ procedure TSynCNCSyn.SymbolProc;
 begin
   FTokenID := tkNormal;
   case FLine[FRun] of
-    '%','@','^':
+    '%':
       begin
         FTokenID := tkAbstract;
         inc(FRun, 1);
@@ -1835,6 +1838,11 @@ begin //'xor'
           FTokenID := tkXcode;
           inc(FRun, 1);
         end;
+      end;
+    '@':
+      begin
+        FTokenID := tkXcodePolar;
+        inc(FRun, 1);
       end
   else
     SpaceProc;
@@ -1848,6 +1856,11 @@ begin
     'y':
       begin
         FTokenID := tkYcode;
+        inc(FRun, 1);
+      end;
+    '^':
+      begin
+        FTokenID := tkYcodePolar;
         inc(FRun, 1);
       end
   else
@@ -1883,7 +1896,7 @@ begin
       '[': ExpressionProc;
       #1 .. #9, #11, #12, #14 .. #32: SpaceProc;
       '.','+','-','0' .. '9': NumberProc;
-      '%','@','^',';','=': SymbolProc;
+      '%',';','=': SymbolProc;
 //       'A'..'Z', 'a'..'z', '_': IdentProc;
       '*': ChecksumProc;
       '#': ParameterProc;
@@ -1913,6 +1926,8 @@ begin
       'x': XCodeProc;
       'y': YCodeProc;
       'z': ZCodeProc;
+      '@': XCodeProc;
+      '^': YCodeProc;
     else
       NormalProc;
     end;
@@ -2009,7 +2024,9 @@ begin
     tkVcode: Result := FVcodeAttri;
     tkWcode: Result := FWcodeAttri;
     tkXcode: Result := FXcodeAttri;
+    tkXcodePolar: Result := FXcodeAttri;
     tkYcode: Result := FYcodeAttri;
+    tkYcodePolar: Result := FYcodeAttri;
     tkZcode: Result := FZcodeAttri;
   else
     Result := nil;

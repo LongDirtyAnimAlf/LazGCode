@@ -493,6 +493,7 @@ var
   ExpressionData        : boolean;
 
   GotAxis               : boolean;
+  GotPolar              : boolean;
   GotIJK                : boolean;
   GotPQ                 : boolean;
   GotR                  : boolean;
@@ -745,6 +746,11 @@ begin
       GotAxis:=GCData[TokenEnumerator].ValueSet;
       if GotAxis then break;
     end;
+    for TokenEnumerator in [tkXcodePolar,tkYcodePolar] do
+    begin
+      GotPolar:=GCData[TokenEnumerator].ValueSet;
+      if GotPolar then break;
+    end;
     for TokenEnumerator in [tkIcode,tkJcode,tkKcode] do
     begin
       GotIJK:=GCData[TokenEnumerator].ValueSet;
@@ -778,7 +784,6 @@ begin
         if GCodeEnumerator=TtkGCodeKind.G92 then OffsetMode:=True;
         if GCodeEnumerator=TtkGCodeKind.G92_1 then OffsetMode:=False;
         if GCodeEnumerator=TtkGCodeKind.G92_2 then OffsetMode:=False;
-
 
         // Now process individual gcode commands
 
@@ -814,10 +819,9 @@ begin
       end;
     end;
 
-
-    if (GCodeMotion=TtkGCodeKind.G91) then
+    if (GCodeDistance=TtkGCodeKind.G91) then
     begin
-      for TokenEnumerator in AXISNUMBERS do
+      for TokenEnumerator in AXISNUMBERS+[tkXcodePolar,tkYcodePolar] do
       begin
         // If we got a value, add it to its previous value: we are in relative mode
         if GCData[TokenEnumerator].ValueSet then
@@ -848,6 +852,28 @@ begin
       end;
     end;
 
+    // Did we receive a line with polar coordinates ?
+    if GotPolar then
+    begin
+      SE:=GCData[tkYcodePolar].NewValue;
+      ARadius:=GCData[tkXcodePolar].NewValue;
+      DestX^:=cos(Pi*(SE/180))*ARadius;
+      DestY^:=sin(Pi*(SE/180))*ARadius;
+      GCData[tkXcode].ValueSet:=True;
+      GCData[tkYcode].ValueSet:=True;
+
+      // Lines / moves
+      if (GCodeMotion in [TtkGCodeKind.G0,TtkGCodeKind.G1]) then
+      begin
+        if (GCodeMotion=TtkGCodeKind.G0) then newp.moveTo(DestX^,DestY^);
+        if (GCodeMotion=TtkGCodeKind.G1) then newp.lineTo(DestX^,DestY^);
+        if GCData[tkZcode].ValueSet then
+        begin
+          newp.addColor(MapHeightToBGRA(0.5+(DestZ^/(100000)),255));
+        end;
+      end;
+    end;
+
     // Did we receive a line with axis coordinates ?
     if GotAxis then
     begin
@@ -860,8 +886,6 @@ begin
         begin
           newp.addColor(MapHeightToBGRA(0.5+(DestZ^/(100000)),255));
         end;
-        //newp.arcDeg(DestX^,DestY^,0.1,0,360);
-        //newp.moveTo(DestX^,DestY^);
       end;
 
       // Splines
