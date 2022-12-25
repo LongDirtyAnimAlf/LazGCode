@@ -38,6 +38,10 @@ type
   tkSpace,       //Space
   tkEqual,       //Equal symbol
   tkAbstract,    //Abstract symbol
+  tkChecksum,    // Checksum / CRC
+
+  tkFunction,    //Functions
+  tkIdentifier,  //ID
 
   tkAcode,       //A axis of machine
   tkBcode,       //B axis of machine
@@ -64,10 +68,7 @@ type
   tkWcode,       //W axis of machine
   tkXcode,       //X axis of machine
   tkYcode,       //Y axis of machine
-  tkZcode,       //Z axis of machine
-
-  tkFunction,    //Functions
-  tkIdentifier   //ID
+  tkZcode       //Z axis of machine
   );
 
   TRangeState = (rsNormal, rsComment);
@@ -108,6 +109,7 @@ type
     FNumberAttri        : TSynHighlighterAttributes;
     FSpaceAttri         : TSynHighlighterAttributes;
     FSymbolAttri        : TSynHighlighterAttributes;
+    FChecksumAttri      : TSynHighlighterAttributes;
 
     FAcodeAttri         : TSynHighlighterAttributes;
     FBcodeAttri         : TSynHighlighterAttributes;
@@ -145,6 +147,7 @@ type
     procedure CommentProc;
     procedure ExpressionProc;
     procedure SymbolProc;
+    procedure ChecksumProc;
     procedure NumberProc;
     procedure ParameterProc;
 
@@ -262,7 +265,7 @@ type
    property NumberAttri: TSynHighlighterAttributes read FNumberAttri write FNumberAttri;
    property SpaceAttri: TSynHighlighterAttributes read FSpaceAttri write FSpaceAttri;
    property SymbolAttri: TSynHighlighterAttributes read FSymbolAttri write FSymbolAttri;
-
+   property ChecksumAttri: TSynHighlighterAttributes read FChecksumAttri write FChecksumAttri;
    property IdentifierAttri: TSynHighlighterAttributes read fIdentifierAttri write fIdentifierAttri;
    property KeyAttri: TSynHighlighterAttributes read fKeyAttri write fKeyAttri;
 
@@ -863,7 +866,7 @@ procedure TSynCNCSyn.SymbolProc;
 begin
   FTokenID := tkNormal;
   case FLine[FRun] of
-    '%','@','^','*':
+    '%','@','^':
       begin
         FTokenID := tkAbstract;
         inc(FRun, 1);
@@ -880,6 +883,22 @@ begin
        FTokenID := tkEqual;
        inc(FRun, 1);
      end
+  else
+    SpaceProc;
+  end;
+end;
+
+procedure TSynCNCSyn.ChecksumProc;
+begin
+  FTokenID := tkNormal;
+  case FLine[FRun] of
+    '*':
+      begin
+        FTokenID := tkChecksum;
+        repeat
+           inc(FRun, 1);
+        until IsLineEnd(FRun);
+      end
   else
     SpaceProc;
   end;
@@ -1056,6 +1075,12 @@ begin
     SYNS_FriendlyAttrSymbol);
   FSymbolAttri.Foreground := clGreen;
   AddAttribute(FSymbolAttri);
+
+  // checksum
+  FChecksumAttri := TSynHighlighterAttributes.Create(SYNS_AttrChecksum,
+    SYNS_FriendlyAttrChecksum);
+  FChecksumAttri.Foreground := clWhite;
+  AddAttribute(FChecksumAttri);
 
   // A-Code
   FAcodeAttri := TSynHighlighterAttributes.Create('CNC A', 'CNC A-Code');
@@ -1855,8 +1880,9 @@ begin
       '[': ExpressionProc;
       #1 .. #9, #11, #12, #14 .. #32: SpaceProc;
       '.','-','0' .. '9': NumberProc;
-      '%','@','^','*',';','=': SymbolProc;
+      '%','@','^',';','=': SymbolProc;
 //       'A'..'Z', 'a'..'z', '_': IdentProc;
+      '*': ChecksumProc;
       '#': ParameterProc;
       'a': ACodeProc;
       'b': BCodeProc;
@@ -1951,6 +1977,7 @@ begin
     tkSpace: Result := FSpaceAttri;
     tkEqual: Result := FEqualAttri;
     tkAbstract: Result := FSymbolAttri;
+    tkChecksum: Result := FChecksumAttri;
 
     tkFunction: Result := FKeyAttri;
     tkIdentifier: Result := FIdentifierAttri;

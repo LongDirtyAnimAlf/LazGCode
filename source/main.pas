@@ -14,82 +14,104 @@ uses
 type
   TtkGCodeKind =
   (
-  Unknown,
-  G0,            //Coordinated Motion at Rapid Rate
-  G1,            //Coordinated Motion at Feed Rate
-  G2,G3,         //Coordinated Helical Motion at Feed Rate
-  G4,            //Dwell
-  G5,            //Cubic Spline
-  G5_1,          //Quadratic B-Spline
-  G5_2,          //NURBS, add control point
-  G7,            //Diameter Mode (lathe)
-  G8,            //Radius Mode (lathe)
-  G10,
-  G10_L1,        //Set Tool Table Entry
-  G10_L10,       //Set Tool Table, Calculated, Workpiece
-  G10_L11,       //Set Tool Table, Calculated, Fixture
-  G10_L2,        //Coordinate System Origin Setting
-  G10_L20,       //Coordinate System Origin Setting Calculated
-  G12,G13,       //Circular pocket
-  G15,G16,       //Polar/cartesian mode for G0/G1
-  G17,G18,G19,   //Plane Select
-  G20,G21,       //Set Units of Measure
-  G28,           //Go to Predefined Position (Home all axes (X, Y, and Z))
-  G30,           //Go to Predefined Position
-  G33,           //Spindle Synchronized Motion
-  G33_1,         //Rigid Tapping
-  G38,           //Probing
-  G40,           //Cancel Cutter Compensation
-  G41,G42,       //Cutter Compensation
-  G41_1,G42_1,   //Dynamic Cutter Compensation
-  G43,           //Use Tool Length Offset from Tool Table
-  G43_1,         //Dynamic Tool Length Offset
-  G43_2,         //Apply additional Tool Length Offset
-  G49,           //Cancel Tool Length Offset
-  G52,           //Local Coordinate System Offset
-  G53,           //Move in Machine Coordinates
-  G54,           //Select Coordinate System (1 - 9)
-  G55,
-  G56,
-  G57,
-  G58,
-  G59,
-  G59_1,
-  G59_2,
-  G59_3,
-  G61,           //Exact Path Mode
-  G61_1,         //Exact Stop Mode
-  G64,           //Path Control Mode with Optional Tolerance
-  G73,           //Drilling Cycle with Chip Breaking
-  G74,           //Left-hand Tapping Cycle with Dwell
-  G76,           //Multi-pass Threading Cycle (Lathe)
-  G80,           //Cancel Motion Modes
-  G81,           //Drilling Cycle
-  G82,           //Drilling Cycle with Dwell
-  G83,           //Drilling Cycle with Peck
-  G84,           //Right-hand Tapping Cycle with Dwell
-  G85,           //Boring Cycle, No Dwell, Feed Out
-  G86,           //Boring Cycle, Stop, Rapid Out
-  G87,
-  G88,
-  G89,           //Boring Cycle, Dwell, Feed Out
-  G90,G91,       //Distance Mode
-  G90_1,G91_1,   //Arc Distance Mode
-  G92,           //Coordinate System Offset
-  G92_1,G92_2,   //Cancel G92 Offsets
-  G92_3,         //Restore G92 Offsets
-  G93,G94,G95,   //Feed Modes
-  G96,           //Spindle Control Mode
-  G98,G99        //Canned Cycle Z Retract Mode
+    GUnknown,
+    G0,            //Coordinated Motion at Rapid Rate
+    G1,            //Coordinated Motion at Feed Rate
+    G2,	         //CW Arc Feed
+    G3,	         //CCW Arc Feed
+    G4,            //Dwell
+    G5,            //Cubic Spline
+    G5_1,          //Quadratic B-Spline
+    G5_2,G5_3,     //NURBS
+    G7,            //Diameter Mode (lathe)
+    G8,            //Radius Mode (lathe)
+    G10,
+    G10_L1,        //Set Tool Table Entry
+    G10_L10,       //Set Tool Table, Calculated, Workpiece
+    G10_L11,       //Set Tool Table, Calculated, Fixture
+    G10_L2,        //Coordinate System Origin Setting
+    G10_L20,       //Coordinate System Origin Setting Calculated
+    G12,G13,       //Circular pocket
+    G15,G16,       //Polar/cartesian mode for G0/G1
+    G17,           //XY Plane
+    G18,           //ZX Plane
+    G19,           //YZ Plane
+    G17_1,         //UV Plane
+    G18_1,         //WU Plane
+    G19_1,         //VW Plan
+    G20,	   //Inch Units
+    G21,	   //Millimeter Units
+    G28,           //Go to Predefined Position (Home all Axes (X, Y, and Z))
+    G30,           //Go to Predefined Position
+    G33,           //Spindle Synchronized Motion
+    G33_1,         //Rigid Tapping
+    G38,           //Probing
+    G40,           //Cancel Cutter Compensation
+    G41,G42,       //Cutter Compensation
+    G41_1,G42_1,   //Dynamic Cutter Compensation
+    G43,           //Use Tool Length Offset from Tool Table
+    G43_1,         //Dynamic Tool Length Offset
+    G43_2,         //Apply additional Tool Length Offset
+    G49,           //Cancel Tool Length Offset
+    G52,           //Local Coordinate System Offset
+    G53,           //Move in Machine Coordinates
+    G54,           //Select Coordinate System 1
+    G55,           //Select Coordinate System 2
+    G56,           //Select Coordinate System 3
+    G57,           //Select Coordinate System 4
+    G58,           //Select Coordinate System 5
+    G59,           //Select Coordinate System 6
+    G59_1,         //Select Coordinate System 7
+    G59_2,         //Select Coordinate System 8
+    G59_3,         //Select Coordinate System 9
+    G61,           //Exact Path Mode
+    G61_1,         //Exact Stop Mode
+    G64,           //Path Control Mode with Optional Tolerance
+    G73,           //Drilling Cycle with Chip Breaking
+    G74,           //Left-hand Tapping Cycle with Dwell
+    G76,           //Multi-pass Threading Cycle (Lathe)
+    G80,           //Cancel Motion Modes
+    G81,           //Drilling Cycle
+    G82,           //Drilling Cycle with Dwell
+    G83,           //Drilling Cycle with Peck
+    G84,           //Right-hand Tapping Cycle with Dwell
+    G85,           //Boring Cycle, No Dwell, Feed Out
+    G86,           //Boring Cycle, Stop, Rapid Out
+    G87,
+    G88,
+    G89,           //Boring Cycle, Dwell, Feed Out
+    G90,	   //Absolute Distance Mode
+    G91,	   //Incremental Distance Mode
+    G90_1,	   //Absolute Distance Mode for Arc (I, J & K offsets)
+    G91_1,	   //Incremental Distance Mode for Arc (I, J & K offsets)
+    G92,           //Coordinate System Offset
+    G92_1,G92_2,   //Cancel G92 Offsets
+    G92_3,         //Restore G92 Offsets
+    G93,G94,G95,   //Feed Modes
+    G96,           //Spindle Control Mode
+    G98,G99        //Canned Cycle Z Retract Mode
   );
 
-  TtkPlane =
+  TtkMCodeKind =
   (
-    XY_plane,    // (G17)
-    XZ_plane,    // (G18)
-    YZ_plane     // (G19)
+    MUnknown,
+    M0,M1,             //Program Pause
+    M2,M30,            //Program End
+    M60,               //Pallet Change Pause
+    M3,M4,M5,          //Spindle Control
+    M6,                //Tool Change
+    M7,M8,M9,          //Coolant Control
+    M48,M49,           //Feed / Spindle Overrides Enable/Disable
+    M50,               //Feed Override Control
+    M51,               //Spindle Override Control
+    M52,               //Adaptive Feed Control
+    M53,               //Feed Stop Control
+    M61,               //Set Current Tool Number
+    M62,M63,M64,M65,   //Output Control
+    M66,               //Input Control
+    M67,               //Analog Output Control
+    M68                //Analog Output Control
   );
-
 
 
 const
@@ -208,6 +230,7 @@ var
 implementation
 
 uses
+  Math,
   TypInfo,
   Tools,
   FPImage,
@@ -419,7 +442,7 @@ begin
   if (i<>-1) then
     result:=TtkGCodeKind(i)
   else
-    result:=TtkGCodeKind.Unknown;
+    result:=TtkGCodeKind.GUnknown;
 end;
 
 procedure TGCodeViewer.btnRenderGCodeClick(Sender: TObject);
@@ -510,7 +533,7 @@ begin
 
   GCData:=Default(TGCodeDataArray);
 
-  GCode:=TtkGCodeKind.Unknown;
+  GCode:=TtkGCodeKind.GUnknown;
 
   FF:=@GCData[tkFcode].NewValue;
   FI:=@GCData[tkIcode].NewValue;
@@ -610,78 +633,76 @@ begin
                 if (SHA=nil) then break else continue;
               end;
             end;
+          tkNone,
+          tkNull,
+          tkReserved,
+          tkComment,
+          tkNormal,
+          tkText,
+          tkNumber,
+          tkSpace,
+          tkEqual,
+          tkAbstract,
+          tkChecksum,
+          tkFunction,
+          tkIdentifier:
+            begin
+              Inc(lineindex,length(tokentext));
+              if (length(tokentext)=0) then Inc(lineindex);
+            end
           else
             begin
-              if TokenEnumerator in [
-                tkComment,
-                tkText,
-                tkReserved,
-                tkNull,
-                tkNumber,
-                tkSpace,
-                tkAbstract,
-                tkNormal,
-                tkFunction,
-                tkIdentifier,
-                tkNcode,
-                tkNone
-                ] then
+              // Skip identifier itself
+              Inc(lineindex);
+              s:='';
+              ParamData:=false;
+              // Try get the data belonging to the identifier
+              repeat
+                TSynCNCSyn(CommandOutputScreen.Highlighter).GetHighlighterAttriAtRowColEx(TPoint.Create(lineindex,linenumber+1),tokentext,tokenindex,j,SHA);
+                if (SHA=nil) then break;
+                tTK:=TtkTokenKind(tokenindex);
+                if tTK in [tkSpace,tkNumber,tkParam] then
                 begin
+                  if (tTK=tkParam) then ParamData:=True;
+                  if (tTK<>tkSpace) then s:=s+tokentext;
                   Inc(lineindex,length(tokentext));
                   if (length(tokentext)=0) then Inc(lineindex);
-                end
+                end else break;
+              until false;
+              if (Length(s)>0) then
+              begin
+                // We got data !!!
+                tTK:=TokenEnumerator;
+                // Tokens U,V and W are same as Tokes A,B and C
+                if tTK=tkUcode then tTK:=tkAcode;
+                if tTK=tkVcode then tTK:=tkBcode;
+                if tTK=tkWcode then tTK:=tkCcode;
+
+                GCData[tTK].ValueSet:=True;
+
+                if ParamData then
+                begin
+                  // We got a ParamName !!
+                  ParamName:=s;
+                  GCData[tTK].ValueSet:=True;
+                  if (ParameterList.IndexOf(ParamName)=-1) then
+                  begin
+                    GCData[tTK].NewValue:=0;
+                    //raise EArgumentException.Create('Got parameter ('+ParamName+'), but no value defined !');
+                  end
+                  else
+                  begin
+                    GCData[tTK].NewValue:=ParameterList.KeyData[ParamName];
+                  end;
+                 end
                 else
                 begin
-                  Inc(lineindex);
-                  s:='';
-                  ParamData:=false;
-                  repeat
-                    TSynCNCSyn(CommandOutputScreen.Highlighter).GetHighlighterAttriAtRowColEx(TPoint.Create(lineindex,linenumber+1),tokentext,tokenindex,j,SHA);
-                    if (SHA=nil) then break;
-                    tTK:=TtkTokenKind(tokenindex);
-                    if tTK in [tkSpace,tkNumber,tkParam] then
-                    begin
-                      if (tTK=tkParam) then ParamData:=True;
-                      if (tTK<>tkSpace) then s:=s+tokentext;
-                      Inc(lineindex,length(tokentext));
-                      if (length(tokentext)=0) then Inc(lineindex);
-                    end else break;
-                  until false;
-                  if (Length(s)>0) then
-                  begin
-                    // We got data !!!
-                    tTK:=TokenEnumerator;
-                    // Tokens U,V and W are same as Tokes A,B and C
-                    if tTK=tkUcode then tTK:=tkAcode;
-                    if tTK=tkVcode then tTK:=tkBcode;
-                    if tTK=tkWcode then tTK:=tkCcode;
-
-                    GCData[tTK].ValueSet:=True;
-
-                    if ParamData then
-                    begin
-                      // We got a ParamName !!
-                      ParamName:=s;
-                      GCData[tTK].ValueSet:=True;
-                      if (ParameterList.IndexOf(ParamName)=-1) then
-                      begin
-                        GCData[tTK].NewValue:=0;
-                        //raise EArgumentException.Create('Got parameter ('+ParamName+'), but no value defined !');
-                      end
-                      else
-                      begin
-                        GCData[tTK].NewValue:=ParameterList.KeyData[ParamName];
-                      end;
-                     end
-                    else
-                    begin
-                      // We got normal number data
-                      GCData[tTK].ValueSet:=True;
-                      GCData[tTK].NewValue:=GetDouble(s);
-                    end;
-                  end;
-                  if (SHA=nil) then break else continue;
+                  // We got normal number data
+                  GCData[tTK].ValueSet:=True;
+                  GCData[tTK].NewValue:=GetDouble(s);
                 end;
+              end;
+              if (SHA=nil) then break else continue;
             end;
         end;
       end;
@@ -845,6 +866,7 @@ begin
         Q3:=((LastX^<ACenterX) AND (LastY^<ACenterY));
         Q4:=((LastX^>=ACenterX) AND (LastY^<ACenterY));
         SA:=180*(arctan((LastY^-ACenterY)/(LastX^-ACenterX)))/Pi;
+        SA:=180*(ArcTan2((LastY^-ACenterY),(LastX^-ACenterX)))/Pi;
         if (Q1) then SA:=0+SA;
         if (Q2 OR Q3) then SA:=180+SA;
         if (Q4) then SA:=360+SA;
@@ -855,6 +877,7 @@ begin
         Q3:=((DestX^<ACenterX) AND (DestY^<ACenterY));
         Q4:=((DestX^>=ACenterX) AND (DestY^<ACenterY));
         SE:=180*(arctan((DestY^-ACenterY)/(DestX^-ACenterX)))/Pi;
+        SE:=180*(ArcTan2((DestY^-ACenterY),(DestX^-ACenterX)))/Pi;
         if (Q1) then SE:=0+SE;
         if (Q2 OR Q3) then SE:=180+SE;
         if (Q4) then SE:=360+SE;
@@ -910,9 +933,8 @@ begin
     for GCodeEnumerator in TtkGCodeKind do
     begin
       // Reset GCode if in non-modal group
-      if GCodeEnumerator in GCODE_NONMODAL then GCode:=TtkGCodeKind.Unknown;
+      if GCodeEnumerator in GCODE_NONMODAL then GCode:=TtkGCodeKind.GUnknown;
     end;
-
 
     // GOTO NEXT GCODE LINE
   end;

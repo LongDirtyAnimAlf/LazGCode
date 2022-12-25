@@ -559,6 +559,18 @@ begin
     Res := Trunc(Args[0]^);
 end;
 
+procedure _ceil(Param: PExpressionRec);
+begin
+  with Param^ do
+    Res := Ceil(Args[0]^);
+end;
+
+procedure _floor(Param: PExpressionRec);
+begin
+  with Param^ do
+    Res := Floor(Args[0]^);
+end;
+
 procedure _sqrt(Param: PExpressionRec);
 begin
   with Param^ do
@@ -1780,6 +1792,13 @@ begin
       1));
 
     DefineStringFunction('pos','Position in of substring in string',_pos);
+
+    // GCode specific
+    Add(TFunction.Create('fix', 'round down to an integer', _floor, 1));
+    Add(TFunction.Create('fup', 'round up to an integer', _ceil, 1));
+    Add(TFunction.Create('atan', 'inverse tangent (x/y) in rad', _ArcTan2, 2));
+    //Add(TFunction.Create('exists', 'check named parameter', _pos, 1));
+
   end;
 end;
 

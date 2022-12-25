@@ -24,6 +24,7 @@ const
   SYNS_AttrBrackets             =  'Brackets';
   SYNS_AttrCDATASection         =  'CDATA-Section';
   SYNS_AttrCharacter            =  'Character';
+  SYNS_AttrChecksum             =  'Checksum';
   SYNS_AttrClass                =  'Class';
   SYNS_AttrColor                =  'ColorValue';
   SYNS_AttrConstant             =  'Constant';
@@ -248,6 +249,7 @@ resourcestring
   SYNS_FriendlyAttrBrackets             =  'Brackets';
   SYNS_FriendlyAttrCDATASection         =  'CDATA Section';
   SYNS_FriendlyAttrCharacter            =  'Character';
+  SYNS_FriendlyAttrChecksum             =  'Checksum';
   SYNS_FriendlyAttrClass                =  'Class';
   SYNS_FriendlyAttrColor                =  'Color Value';
   SYNS_FriendlyAttrComment              =  'Comment';
