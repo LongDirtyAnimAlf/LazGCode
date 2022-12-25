@@ -477,7 +477,7 @@ type
   TOffsetDataArray  = array[TtkGCodeKind.G54..TtkGCodeKind.G59_3] of TOffsetData;
 
   TGCodeList        = specialize TFPGList<TtkGCodeKind>;
-  TTokenList        = specialize TFPGList<TtkTokenKind>;
+  TTokenList        = specialize TFPGMap<TtkTokenKind,string>;
   TParameters       = specialize TFPGMap<shortstring,double>;
 var
   GCData                : TGCodeDataArray;
@@ -530,6 +530,7 @@ var
   GCodeCutterComp       : TtkGCodeKind;
 begin
   GCodeList:=TGCodeList.Create;
+  TokenList:=TTokenList.Create;
   ParameterList:=TParameters.Create;
 
   zoom          := 1;
@@ -582,6 +583,7 @@ begin
   begin
     for TokenEnumerator in TtkTokenKind do GCData[TokenEnumerator].ValueSet:=False;
     GCodeList.Clear;
+    TokenList.Clear;
     SHA:=nil;
     tokenindex:=0;
     tokentext:='';
@@ -730,6 +732,8 @@ begin
                 if tTK=tkUcode then tTK:=tkAcode;
                 if tTK=tkVcode then tTK:=tkBcode;
                 if tTK=tkWcode then tTK:=tkCcode;
+
+                TokenList.Add(tTK,s);
 
                 GCData[tTK].ValueSet:=True;
 
@@ -1098,6 +1102,7 @@ begin
   newp_boundsF.Inflate(4,4);
 
   ParameterList.Free;
+  TokenList.Free;
   GCodeList.Free;
 end;
 
