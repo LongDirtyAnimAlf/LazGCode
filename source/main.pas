@@ -41,8 +41,10 @@ type
     G19_1,         //VW Plan
     G20,	   //Inch Units
     G21,	   //Millimeter Units
-    G28,           //Go to Predefined Position (Home all Axes (X, Y, and Z))
-    G30,           //Go to Predefined Position
+    G28,           //Go to Predefined Position as defined by G28.1
+    G28_1,         //Store Predefined Positions (Home all Axes)
+    G30,           //Go to Predefined Position as defined by G30.1
+    G30_1,         //Store Predefined Positions (Home all Axes)
     G33,           //Spindle Synchronized Motion
     G33_1,         //Rigid Tapping
     G38,           //Probing
@@ -255,17 +257,17 @@ begin
      if GCodeEnumerator=ACode1 then presult:=@result1;
      if GCodeEnumerator=ACode2 then presult:=@result2;
 
-     if GCodeEnumerator in [G93, G94] then presult^:=1;
-     if GCodeEnumerator in [G17, G18, G19] then presult^:=2;
-     if GCodeEnumerator in [G20, G21] then presult^:=3;
-     if GCodeEnumerator in [G40, G41, G42] then presult^:=4;
-     if GCodeEnumerator in [G43, G49] then presult^:=5;
-     if GCodeEnumerator in [G54, G55, G56, G57, G58, G59, G59_1, G59_2, G59_3] then presult^:=6;
-     if GCodeEnumerator in [G61, G61_1, G64] then presult^:=7;
-     if GCodeEnumerator in [G90, G91] then presult^:=8;
-     if GCodeEnumerator in [G98, G99] then presult^:=9;
-     if GCodeEnumerator in [G28, G30,G10,G52, G92, G92_1, G92_2, G94] then presult^:=10;
-     if GCodeEnumerator in [G0,G1,G2,G3, G33, G38, G73, G76,   G81,G82,G83,G84,G85,G86,G87,G88,G89] then presult^:=11;
+     if GCodeEnumerator in [G93,G94] then presult^:=1;
+     if GCodeEnumerator in [G17,G18,G19] then presult^:=2;
+     if GCodeEnumerator in [G20,G21] then presult^:=3;
+     if GCodeEnumerator in [G40,G41, G42] then presult^:=4;
+     if GCodeEnumerator in [G43,G49] then presult^:=5;
+     if GCodeEnumerator in [G54,G55,G56,G57,G58,G59,G59_1,G59_2,G59_3] then presult^:=6;
+     if GCodeEnumerator in [G61,G61_1,G64] then presult^:=7;
+     if GCodeEnumerator in [G90,G91] then presult^:=8;
+     if GCodeEnumerator in [G98,G99] then presult^:=9;
+     if GCodeEnumerator in [G28,G30,G10,G52,G92,G92_1,G92_2,G94] then presult^:=10;
+     if GCodeEnumerator in [G0,G1,G2,G3,G33,G38,G73,G76,G81,G82,G83,G84,G85,G86,G87,G88,G89] then presult^:=11;
   end;
 
   result:=result1-result2;
@@ -488,6 +490,7 @@ var
   LastX,LastY,LastZ     : PDouble;
 
   ParamData             : boolean;
+  ExpressionData        : boolean;
 
   GotAxis               : boolean;
   GotIJK                : boolean;
@@ -569,18 +572,15 @@ begin
               GCode:=GetGCodeFromString(tokentext);
               // Store received line gcodes
               GCodeList.Add(GCode);
-              Inc(lineindex,length(tokentext));
-              if (length(tokentext)=0) then Inc(lineindex);
+              Inc(lineindex,Max(1,length(tokentext)));
             end;
           tkNcode:
             begin
-              Inc(lineindex,length(tokentext));
-              if (length(tokentext)=0) then Inc(lineindex);
+              Inc(lineindex,Max(1,length(tokentext)));
             end;
           tkExpression:
             begin
-              Inc(lineindex,length(tokentext));
-              if (length(tokentext)=0) then Inc(lineindex);
+              Inc(lineindex,Max(1,length(tokentext)));
             end;
           tkParam:
             begin
@@ -614,15 +614,14 @@ begin
                     if tTK in [tkSpace,tkNumber] then
                     begin
                       if (tTK=tkNumber) then s:=s+tokentext;
-                      Inc(lineindex,length(tokentext));
-                      if (length(tokentext)=0) then Inc(lineindex);
+                      Inc(lineindex,Max(1,length(tokentext)));
                     end else break;
                     TSynCNCSyn(CommandOutputScreen.Highlighter).GetHighlighterAttriAtRowColEx(TPoint.Create(lineindex,linenumber+1),tokentext,tokenindex,j,SHA);
                     if (SHA=nil) then break;
                   until false;
                   if (Length(s)>0) then
                   begin
-                    ParameterList.Add(ParamName,GetDouble(s));
+                    ParameterList.AddOrSetData(ParamName,GetDouble(s));
                   end;
                 end
                 else
@@ -647,28 +646,58 @@ begin
           tkFunction,
           tkIdentifier:
             begin
-              Inc(lineindex,length(tokentext));
-              if (length(tokentext)=0) then Inc(lineindex);
+              Inc(lineindex,Max(1,length(tokentext)));
             end
           else
             begin
               // Skip identifier itself
               Inc(lineindex);
+              // Try get the data belonging to the identifier
+              // Might be a number
+              // Might be an expression
+              // Might contain spaces
+              // Might contain a mix of all of the above
               s:='';
               ParamData:=false;
-              // Try get the data belonging to the identifier
+              ExpressionData:=false;
+              tTK:=TtkTokenKind.tkNone;
               repeat
+
                 TSynCNCSyn(CommandOutputScreen.Highlighter).GetHighlighterAttriAtRowColEx(TPoint.Create(lineindex,linenumber+1),tokentext,tokenindex,j,SHA);
                 if (SHA=nil) then break;
+
                 tTK:=TtkTokenKind(tokenindex);
-                if tTK in [tkSpace,tkNumber,tkParam] then
+
+                // These are the datatypes we accept after an identifier, being a GCode in A..Z, except G itself and N
+                if (NOT (tTK in [tkSpace,tkNumber,tkParam,tkExpression])) then break;
+
+                // Skip spaces
+                if tTK=tkSpace then
                 begin
-                  if (tTK=tkParam) then ParamData:=True;
-                  if (tTK<>tkSpace) then s:=s+tokentext;
-                  Inc(lineindex,length(tokentext));
-                  if (length(tokentext)=0) then Inc(lineindex);
-                end else break;
+                  Inc(lineindex,Max(1,length(tokentext)));
+                  continue;
+                end;
+
+                // Problem: we might have an param inside an expression
+                // So, check expression for a param first !!
+                if (tTK=tkExpression) then
+                begin
+                  // try to do recursive
+                  //#5 := 1
+                  //#3 := 5
+                  //##3 = 1
+                  //#[#3+2] = 1
+                  //#[##3+2] = 5
+                end;
+
+
+                s:=s+tokentext;
+                if (tTK=tkParam) then ParamData:=True;
+                if (tTK=tkExpression) then ExpressionData:=true;
+                Inc(lineindex,Max(1,length(tokentext)));
+
               until false;
+
               if (Length(s)>0) then
               begin
                 // We got data !!!
@@ -710,6 +739,24 @@ begin
       if (SHA=nil) then break;
     until false;
 
+    // Set flags to indicate the type of received data
+    for TokenEnumerator in AXISNUMBERS do
+    begin
+      GotAxis:=GCData[TokenEnumerator].ValueSet;
+      if GotAxis then break;
+    end;
+    for TokenEnumerator in [tkIcode,tkJcode,tkKcode] do
+    begin
+      GotIJK:=GCData[TokenEnumerator].ValueSet;
+      if GotIJK then break;
+    end;
+    for TokenEnumerator in [tkPcode,tkQcode] do
+    begin
+      GotPQ:=GCData[TokenEnumerator].ValueSet;
+      if GotPQ then break;
+    end;
+    GotR :=((GCData[tkRcode].ValueSet));
+
     // Process received GCodes
     if (GCodeList.Count>0) then
     begin
@@ -730,25 +777,43 @@ begin
         if GCodeEnumerator=TtkGCodeKind.G15 then PolarMode:=False;
         if GCodeEnumerator=TtkGCodeKind.G92 then OffsetMode:=True;
         if GCodeEnumerator=TtkGCodeKind.G92_1 then OffsetMode:=False;
+        if GCodeEnumerator=TtkGCodeKind.G92_2 then OffsetMode:=False;
+
+
+        // Now process individual gcode commands
+
+        if GCodeEnumerator in [TtkGCodeKind.G28_1,TtkGCodeKind.G30_1] then
+        begin
+          // Store home positions
+          if (GCodeEnumerator=TtkGCodeKind.G28_1) then j:=5161;
+          if (GCodeEnumerator=TtkGCodeKind.G30_1) then j:=5181;
+          for TokenEnumerator in AXISNUMBERS do
+          begin
+            if (TokenEnumerator=tkEcode) then continue;
+            ParameterList.AddOrSetData('#'+InttoStr(j),GCData[TokenEnumerator].PrevValue);
+            Inc(j);
+          end;
+        end;
+
+        if GCodeEnumerator in [TtkGCodeKind.G92,TtkGCodeKind.G92_1] then
+        begin
+          // Store offsets
+          j:=5211;
+          for TokenEnumerator in AXISNUMBERS do
+          begin
+            if (TokenEnumerator=tkEcode) then continue;
+            if GCodeEnumerator=TtkGCodeKind.G92 then
+            begin
+             if GCData[TokenEnumerator].ValueSet then ParameterList.AddOrSetData('#'+InttoStr(j),GCData[TokenEnumerator].PrevValue-GCData[TokenEnumerator].NewValue);
+            end
+            else ParameterList.AddOrSetData('#'+InttoStr(j),0);
+            Inc(j);
+          end;
+        end;
+
       end;
     end;
 
-    for TokenEnumerator in AXISNUMBERS do
-    begin
-      GotAxis:=GCData[TokenEnumerator].ValueSet;
-      if GotAxis then break;
-    end;
-    for TokenEnumerator in [tkIcode,tkJcode,tkKcode] do
-    begin
-      GotIJK:=GCData[TokenEnumerator].ValueSet;
-      if GotIJK then break;
-    end;
-    for TokenEnumerator in [tkPcode,tkQcode] do
-    begin
-      GotPQ:=GCData[TokenEnumerator].ValueSet;
-      if GotPQ then break;
-    end;
-    GotR :=((GCData[tkRcode].ValueSet));
 
     if (GCodeMotion=TtkGCodeKind.G91) then
     begin
@@ -781,7 +846,6 @@ begin
         GCData[tkKcode].NewValue:=GCData[tkKcode].PrevValue;
         GCData[tkKcode].ValueSet:=False;
       end;
-
     end;
 
     // Did we receive a line with axis coordinates ?

@@ -920,6 +920,9 @@ begin
   if FLine[FRun] = '-' then
     inc(FRun);
 
+  if FLine[FRun] = '+' then
+    inc(FRun);
+
   // check for dot
   DotFound:=(FLine[FRun] = '.');
   if DotFound then
@@ -1879,7 +1882,7 @@ begin
       '(': CommentOpenProc;
       '[': ExpressionProc;
       #1 .. #9, #11, #12, #14 .. #32: SpaceProc;
-      '.','-','0' .. '9': NumberProc;
+      '.','+','-','0' .. '9': NumberProc;
       '%','@','^',';','=': SymbolProc;
 //       'A'..'Z', 'a'..'z', '_': IdentProc;
       '*': ChecksumProc;
