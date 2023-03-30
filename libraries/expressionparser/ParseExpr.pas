@@ -118,7 +118,7 @@ instead NAN is returned.
 Note that using this directive is less efficient}
 
 uses
-  SysUtils, OObjects, Classes, ParseClass;
+  SysUtils, oObjects, Classes, ParseClass;
 
 type
   TCustomExpressionParser = class

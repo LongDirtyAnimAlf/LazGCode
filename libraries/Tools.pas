@@ -226,25 +226,25 @@ procedure EnumerateCOMPorts(ComList: TStrings);
 var
   sr : TSearchRec;
 begin
-  if FindFirst('/dev/ttyS*', $FFFFFFFF, sr) = 0 then
+  if FindFirst('/dev/ttyS*', faAnyFile, sr) = 0 then
     repeat
-      if (sr.Attr and $FFFFFFFF) = Sr.Attr then
+      if (sr.Attr and faAnyFile) = Sr.Attr then
       begin
         ComList.Append(sr.Name);
       end;
     until FindNext(sr) <> 0;
   FindClose(sr);
-  if FindFirst('/dev/ttyUSB*', $FFFFFFFF, sr) = 0 then begin
+  if FindFirst('/dev/ttyUSB*', faAnyFile, sr) = 0 then begin
     repeat
-      if (sr.Attr and $FFFFFFFF) = Sr.Attr then begin
+      if (sr.Attr and faAnyFile) = Sr.Attr then begin
         ComList.Append(sr.Name);
       end;
     until FindNext(sr) <> 0;
   end;
   FindClose(sr);
-  if FindFirst('/dev/ttyAM*', $FFFFFFFF, sr) = 0 then begin
+  if FindFirst('/dev/ttyAM*', faAnyFile, sr) = 0 then begin
     repeat
-      if (sr.Attr and $FFFFFFFF) = Sr.Attr then begin
+      if (sr.Attr and faAnyFile) = Sr.Attr then begin
         ComList.Append(sr.Name);
       end;
     until FindNext(sr) <> 0;

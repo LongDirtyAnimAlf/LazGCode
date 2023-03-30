@@ -1,6 +1,10 @@
-unit OObjects;
+unit oObjects;
+
 interface
-uses Classes;
+
+uses
+  Classes;
+
 const
 
   {TOCollection interfaces between OWL TCollection and VCL TList}
